@@ -1,94 +1,103 @@
 package morph.avaritia.tile;
 
-import codechicken.lib.util.ArrayUtils;
-import codechicken.lib.util.BlockUtils;
-import net.minecraft.entity.player.EntityPlayer;
+import morph.avaritia.container.ContainerExtremeCrafting;
+import morph.avaritia.init.ModContent;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.container.INamedContainerProvider;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Direction;
+import net.minecraft.util.INameable;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 
-public class TileDireCraftingTable extends TileBase implements IInventory, ISidedInventory {
+import javax.annotation.Nullable;
+
+public class TileDireCraftingTable extends TileBase implements IInventory, ISidedInventory, INamedContainerProvider, INameable {
 
     private ItemStack result = ItemStack.EMPTY;
-    private ItemStack[] matrix = new ItemStack[81];
+    private final NonNullList<ItemStack> matrix = NonNullList.withSize(81, ItemStack.EMPTY);
+    public static final ITextComponent CONTAINER_TITLE = new TranslationTextComponent("tile.avaritia.extreme_crafting_table");
 
     public TileDireCraftingTable() {
-        ArrayUtils.fillArray(matrix, ItemStack.EMPTY);
+        super(ModContent.tileDireCraftingTable);
+        while (matrix.size() < 81) matrix.add(ItemStack.EMPTY);
     }
 
+
     @Override
-    public void readFromNBT(NBTTagCompound tag) {
-        super.readFromNBT(tag);
-        result = new ItemStack(tag.getCompoundTag("Result"));
-        for (int x = 0; x < matrix.length; x++) {
-            if (tag.hasKey("Craft" + x)) {
-                matrix[x] = new ItemStack(tag.getCompoundTag("Craft" + x));
+    public void load(BlockState blockState, CompoundNBT tag) {
+        super.load(blockState, tag);
+        result = ItemStack.of(tag.getCompound("Result"));
+        for (int x = 0; x < matrix.size(); x++) {
+            if (tag.contains("Craft" + x)) {
+                matrix.set(x, ItemStack.of(tag.getCompound("Craft" + x)));
             }
         }
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound tag) {
+    public CompoundNBT save(CompoundNBT tag) {
         if (!result.isEmpty()) {
-            NBTTagCompound produce = new NBTTagCompound();
-            result.writeToNBT(produce);
-            tag.setTag("Result", produce);
+            CompoundNBT produce = new CompoundNBT();
+            result.save(produce);
+            tag.put("Result", produce);
         } else {
-            tag.removeTag("Result");
+            tag.remove("Result");
         }
 
-        for (int x = 0; x < matrix.length; x++) {
-            if (!matrix[x].isEmpty()) {
-                NBTTagCompound craft = new NBTTagCompound();
-                matrix[x].writeToNBT(craft);
-                tag.setTag("Craft" + x, craft);
+        for (int x = 0; x < matrix.size(); x++) {
+            if (!matrix.get(x).isEmpty()) {
+                CompoundNBT craft = new CompoundNBT();
+                matrix.get(x).save(craft);
+                tag.put("Craft" + x, craft);
             } else {
-                tag.removeTag("Craft" + x);
+                tag.remove("Craft" + x);
             }
         }
-        return super.writeToNBT(tag);
+        return super.save(tag);
     }
 
     @Override
-    public int getSizeInventory() {
+    public int getContainerSize() {
         return 82;
     }
 
     @Override
     public boolean isEmpty() {
-        return ArrayUtils.count(matrix, stack -> !stack.isEmpty()) <= 0 && result.isEmpty();
+        return this.matrix.stream().allMatch(ItemStack::isEmpty) && this.result.isEmpty();
     }
 
     @Override
-    public ItemStack getStackInSlot(int slot) {
+    public ItemStack getItem(int slot) {
         if (slot == 0) {
             return result;
-        } else if (slot <= matrix.length) {
-            return matrix[slot - 1];
+        } else if (slot <= matrix.size()) {
+            return matrix.get(slot - 1);
         } else {
             return ItemStack.EMPTY;
         }
     }
 
     @Override
-    public ItemStack decrStackSize(int slot, int decrement) {
-
+    public ItemStack removeItem(int slot, int decrement) {
         if (slot == 0) {
             if (!result.isEmpty()) {
-                for (int x = 1; x <= matrix.length; x++) {
-                    decrStackSize(x, 1);
+                for (int x = 1; x <= matrix.size(); x++) {
+                    removeItem(x, 1);
                 }
                 if (result.getCount() <= decrement) {
                     ItemStack craft = result;
                     result = ItemStack.EMPTY;
                     return craft;
                 }
-                ItemStack split = result.splitStack(decrement);
+                ItemStack split = result.split(decrement);
                 if (result.getCount() <= 0) {
                     result = ItemStack.EMPTY;
                 }
@@ -96,16 +105,16 @@ public class TileDireCraftingTable extends TileBase implements IInventory, ISide
             } else {
                 return ItemStack.EMPTY;
             }
-        } else if (slot <= matrix.length) {
-            if (matrix[slot - 1] != ItemStack.EMPTY) {
-                if (matrix[slot - 1].getCount() <= decrement) {
-                    ItemStack ingredient = matrix[slot - 1];
-                    matrix[slot - 1] = ItemStack.EMPTY;
+        } else if (slot <= matrix.size()) {
+            if (matrix.get(slot - 1) != ItemStack.EMPTY) {
+                if (matrix.get(slot - 1).getCount() <= decrement) {
+                    ItemStack ingredient = matrix.get(slot - 1);
+                    matrix.set(slot - 1, ItemStack.EMPTY);
                     return ingredient;
                 }
-                ItemStack split = matrix[slot - 1].splitStack(decrement);
-                if (matrix[slot - 1].getCount() <= 0) {
-                    matrix[slot - 1] = ItemStack.EMPTY;
+                ItemStack split = matrix.get(slot - 1).split(decrement);
+                if (matrix.get(slot - 1).getCount() <= 0) {
+                    matrix.set(slot - 1, ItemStack.EMPTY);
                 }
                 return split;
             }
@@ -114,11 +123,11 @@ public class TileDireCraftingTable extends TileBase implements IInventory, ISide
     }
 
     @Override
-    public ItemStack removeStackFromSlot(int slot) {
+    public ItemStack removeItemNoUpdate(int slot) {
         if (slot == 0) {
             if (!result.isEmpty()) {
-                for (int x = 1; x <= matrix.length; x++) {
-                    decrStackSize(x, 1);
+                for (int x = 1; x <= matrix.size(); x++) {
+                    removeItem(x, 1);
                 }
 
                 ItemStack craft = result;
@@ -128,10 +137,10 @@ public class TileDireCraftingTable extends TileBase implements IInventory, ISide
             } else {
                 return ItemStack.EMPTY;
             }
-        } else if (slot <= matrix.length) {
-            if (!matrix[slot - 1].isEmpty()) {
-                ItemStack ingredient = matrix[slot - 1];
-                matrix[slot - 1] = ItemStack.EMPTY;
+        } else if (slot <= matrix.size()) {
+            if (!matrix.get(slot - 1).isEmpty()) {
+                ItemStack ingredient = matrix.get(slot - 1);
+                matrix.set(slot - 1, ItemStack.EMPTY);
                 return ingredient;
             }
         }
@@ -139,41 +148,47 @@ public class TileDireCraftingTable extends TileBase implements IInventory, ISide
     }
 
     @Override
-    public void openInventory(EntityPlayer player) {
+    public void startOpen(PlayerEntity player) {
     }
 
     @Override
-    public void closeInventory(EntityPlayer player) {
+    public void stopOpen(PlayerEntity player) {
     }
 
     @Override
-    public boolean isUsableByPlayer(EntityPlayer player) {
-        return world.getTileEntity(pos) == this && BlockUtils.isEntityInRange(pos, player, 64);
-    }
-
-    @Override
-    public boolean isItemValidForSlot(int slot, ItemStack stack) {
-
-        return false;
-    }
-
-    @Override
-    public int getInventoryStackLimit() {
-        return 64;
-    }
-
-    @Override
-    public void setInventorySlotContents(int slot, ItemStack stack) {
-        if (slot == 0) {
-            result = stack;
-        } else if (slot <= matrix.length) {
-            matrix[slot - 1] = stack;
+    public boolean stillValid(PlayerEntity player) {
+        if (this.level.getBlockEntity(this.worldPosition) != this) {
+            return false;
+        } else {
+            return !(player.distanceToSqr((double)this.worldPosition.getX() + 0.5D,
+                                          (double)this.worldPosition.getY() + 0.5D,
+                                          (double)this.worldPosition.getZ() + 0.5D)
+                                          > 64.0D);
         }
     }
 
     @Override
-    public String getName() {
-        return "container.dire";
+    public boolean canPlaceItem(int slot, ItemStack stack) {
+        return false;
+    }
+
+    @Override
+    public int getMaxStackSize() {
+        return 64;
+    }
+
+    @Override
+    public void setItem(int slot, ItemStack stack) {
+        if (slot == 0) {
+            result = stack;
+        } else if (slot <= matrix.size()) {
+            matrix.set(slot - 1, stack);
+        }
+    }
+
+    @Override
+    public ITextComponent getName() {
+        return new TranslationTextComponent("container.dire");
     }
 
     @Override
@@ -183,47 +198,33 @@ public class TileDireCraftingTable extends TileBase implements IInventory, ISide
 
     @Override
     public ITextComponent getDisplayName() {
-        if (hasCustomName()) {
-            return new TextComponentString(getName());
-        }
-        return new TextComponentTranslation(getName());
+        return getName();
     }
 
     @Override
-    public int[] getSlotsForFace(EnumFacing face) {
+    public int[] getSlotsForFace(Direction face) {
         return new int[] {};
     }
 
     @Override
-    public boolean canInsertItem(int slot, ItemStack item, EnumFacing face) {
+    public boolean canPlaceItemThroughFace(int slot, ItemStack item, Direction face) {
         return false;
     }
 
     @Override
-    public boolean canExtractItem(int slot, ItemStack item, EnumFacing face) {
+    public boolean canTakeItemThroughFace(int slot, ItemStack item, Direction face) {
         return false;
     }
 
     @Override
-    public int getFieldCount() {
-        return 0;
-    }
-
-    @Override
-    public void setField(int id, int value) {
-    }
-
-    @Override
-    public int getField(int id) {
-        return 0;
-    }
-
-    @Override
-    public void clear() {
+    public void clearContent() {
         result = ItemStack.EMPTY;
-        for (int x = 0; x < matrix.length; x++) {
-            matrix[x] = ItemStack.EMPTY;
-        }
+        matrix.clear();
     }
 
+    @Nullable
+    @Override
+    public Container createMenu(int id, PlayerInventory playerInv, PlayerEntity player) {
+        return new ContainerExtremeCrafting(id, playerInv, this);
+    }
 }

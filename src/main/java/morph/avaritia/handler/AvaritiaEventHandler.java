@@ -1,29 +1,44 @@
 package morph.avaritia.handler;
 
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import morph.avaritia.init.ModItems;
 import morph.avaritia.item.ItemArmorInfinity;
-import morph.avaritia.item.ItemFracturedOre;
 import morph.avaritia.item.ItemMatterCluster;
 import morph.avaritia.item.tools.ItemSwordInfinity;
+import morph.avaritia.util.DamageSourceInfinitySword;
+import morph.avaritia.util.ModHelper;
 import morph.avaritia.util.TextUtils;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.item.EntityItem;
-import net.minecraft.entity.monster.EntitySkeleton;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Items;
-import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.inventory.EntityEquipmentSlot.Type;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
+import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.monster.SkeletonEntity;
+import net.minecraft.entity.player.PlayerAbilities;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.*;
+import net.minecraft.loot.LootContext;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
+import net.minecraft.potion.Potion;
+import net.minecraft.util.RegistryKey;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.translation.I18n;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.world.IWorld;
 import net.minecraft.world.World;
+import net.minecraft.world.server.ServerWorld;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -34,32 +49,28 @@ import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
-import net.minecraftforge.event.world.BlockEvent.HarvestDropsEvent;
-import net.minecraftforge.fml.common.eventhandler.Event;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-import net.minecraftforge.oredict.OreDictionary;
+import net.minecraftforge.event.world.BlockEvent;
+import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 import java.util.*;
 
 public class AvaritiaEventHandler {
 
-    private static Map<Integer, List<AEOCrawlerTask>> crawlerTasks = new HashMap<>();
+    private static Map<RegistryKey<World>, List<AEOCrawlerTask>> crawlerTasks = new HashMap<>();
 
     private static Set<ItemStack> capturedDrops = new LinkedHashSet<>();
     private static boolean doItemCapture = false;
 
     //These are defaults, loaded from config.
-    public static final Set<String> defaultTrashOres = new HashSet<>();
+    public static final Set<ResourceLocation> defaultTrashOres = new HashSet<>();
 
-    public static boolean isInfinite(EntityPlayer player) {
-        for (EntityEquipmentSlot slot : EntityEquipmentSlot.values()) {
-            if (slot.getSlotType() != Type.ARMOR) {
+    public static boolean isInfinite(PlayerEntity player) {
+        for (EquipmentSlotType slot : EquipmentSlotType.values()) {
+            if (slot.getType() != EquipmentSlotType.Group.ARMOR) {
                 continue;
             }
-            ItemStack stack = player.getItemStackFromSlot(slot);
+            ItemStack stack = player.getItemBySlot(slot);
             if (stack.isEmpty() || !(stack.getItem() instanceof ItemArmorInfinity)) {
                 return false;
             }
@@ -88,19 +99,19 @@ public class AvaritiaEventHandler {
 
     @SubscribeEvent
     public void onEntityJoinWorld(EntityJoinWorldEvent event) {
-        if (doItemCapture) {
-            if (event.getEntity() instanceof EntityItem) {
-                ItemStack stack = ((EntityItem) event.getEntity()).getItem();
-                capturedDrops.add(stack);
-                event.setCanceled(true);
-            }
-        }
+//        if (doItemCapture) {
+//            if (event.getEntity() instanceof ItemEntity) {
+//                ItemStack stack = ((ItemEntity) event.getEntity()).getItem();
+//                capturedDrops.add(stack);
+//                event.setCanceled(true);
+//            }
+//        }
     }
     //endregion
 
-    public static AEOCrawlerTask startCrawlerTask(World world, EntityPlayer player, ItemStack stack, BlockPos coords, int steps, boolean leaves, boolean force, Set<BlockPos> posChecked) {
+    public static AEOCrawlerTask startCrawlerTask(World world, PlayerEntity player, ItemStack stack, BlockPos coords, int steps, boolean leaves, boolean force, Set<BlockPos> posChecked) {
         AEOCrawlerTask swapper = new AEOCrawlerTask(world, player, stack, coords, steps, leaves, force, posChecked);
-        int dim = world.provider.getDimension();
+        RegistryKey<World> dim = world.dimension();
         if (!crawlerTasks.containsKey(dim)) {
             crawlerTasks.put(dim, new ArrayList<>());
         }
@@ -111,7 +122,7 @@ public class AvaritiaEventHandler {
     @SubscribeEvent
     public void onTickEnd(TickEvent.WorldTickEvent event) {//TODO, clamp at specific num ops per tick.
         if (event.phase == TickEvent.Phase.END) {
-            int dim = event.world.provider.getDimension();
+            RegistryKey<World> dim = event.world.dimension();
             if (crawlerTasks.containsKey(dim)) {
                 List<AEOCrawlerTask> swappers = crawlerTasks.get(dim);
                 List<AEOCrawlerTask> swappersSafe = new ArrayList<>(swappers);
@@ -126,28 +137,62 @@ public class AvaritiaEventHandler {
     }
 
     @SubscribeEvent
+    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        PlayerEntity player = event.player;
+        for (ItemStack armorStack : player.getArmorSlots()) {
+            if (!(armorStack.getItem() instanceof ArmorItem)) {
+                continue;
+            }
+            EquipmentSlotType armorType = ((ArmorItem) armorStack.getItem()).getSlot();
+            if (armorType == EquipmentSlotType.HEAD) {
+                player.setAirSupply(300);
+                player.getFoodData().setFoodLevel(20);
+                player.getFoodData().setSaturation(20F);
+                EffectInstance nv = player.getEffect(Effects.NIGHT_VISION);
+                if (nv == null) {
+                    nv = new EffectInstance(Effects.NIGHT_VISION, 300, 0, false, false);
+                    player.addEffect(nv);
+                }
+                nv.duration = 300;
+            } else if (armorType == EquipmentSlotType.CHEST) {
+                player.abilities.flying = true;
+                List<EffectInstance> effects = Lists.newArrayList(player.getActiveEffects());
+                for (EffectInstance potion : Collections2.filter(effects, potion -> !potion.getEffect().isBeneficial())) {
+                    if (ModHelper.isHoldingCleaver(player) && potion.getEffect().equals(Effects.DIG_SLOWDOWN)) {
+                        continue;
+                    }
+                    player.removeEffect(potion.getEffect());
+                }
+            } else if (armorType == EquipmentSlotType.LEGS) {
+                if (player.isOnFire()) {
+                    player.clearFire();
+                }
+            }
+        }
+    }
+
+    @SubscribeEvent
     public void onPlayerMine(PlayerInteractEvent.LeftClickBlock event) {
-        if (!ConfigHandler.bedrockBreaker || event.getFace() == null || event.getWorld().isRemote || event.getItemStack().isEmpty() || event.getEntityPlayer().capabilities.isCreativeMode) {
+        if (!ConfigHandler.bedrockBreaker || event.getFace() == null || event.getWorld().isClientSide() || event.getItemStack().isEmpty() || event.getPlayer().isCreative()) {
             return;
         }
         World world = event.getWorld();
         BlockPos pos = event.getPos();
-        IBlockState state = world.getBlockState(pos);
+        BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
-        int meta = block.getMetaFromState(state);
-        if (state.getBlockHardness(world, event.getPos()) <= -1 && event.getItemStack().getItem() == ModItems.infinity_pickaxe && (state.getMaterial() == Material.ROCK || state.getMaterial() == Material.IRON)) {
+        if (state.getDestroySpeed(world, event.getPos()) <= -1 && event.getItemStack().getItem() == ModItems.infinity_pickaxe && (state.getMaterial() == Material.STONE || state.getMaterial() == Material.METAL)) {
 
-            if (event.getItemStack().getTagCompound() != null && event.getItemStack().getTagCompound().getBoolean("hammer")) {
-                ModItems.infinity_pickaxe.onBlockStartBreak(event.getEntityPlayer().getHeldItem(EnumHand.MAIN_HAND), event.getPos(), event.getEntityPlayer());
+            if (event.getItemStack().getTag() != null && event.getItemStack().getTag().getBoolean("hammer")) {
+                ModItems.infinity_pickaxe.onBlockStartBreak(event.getPlayer().getMainHandItem(), event.getPos(), event.getPlayer());
             } else {//TODO, FIXME, HELP!
                 //if (block.quantityDropped(randy) == 0) {
-                //    ItemStack drop = block.getPickBlock(state, ToolHelper.raytraceFromEntity(event.getWorld(), event.getEntityPlayer(), true, 10), event.getWorld(), event.getPos(), event.getEntityPlayer());
+                //    ItemStack drop = block.getPickBlock(state, ToolHelper.raytraceFromEntity(event.getWorld(), event.getPlayerEntity(), true, 10), event.getWorld(), event.getPos(), event.getPlayerEntity());
                 //    if (drop == null) {
                 //        drop = new ItemStack(block, 1, meta);
                 //    }
-                //    ToolHelper.dropItem(drop, event.getEntityPlayer().worldObj, event.getPos());
+                //    ToolHelper.dropItem(drop, event.getPlayerEntity().worldObj, event.getPos());
                 //} else {
-                //    block.harvestBlock(event.getWorld(), event.getEntityPlayer(), event.getPos(), state, null, null);
+                //    block.harvestBlock(event.getWorld(), event.getPlayerEntity(), event.getPos(), state, null, null);
                 ///}
                 //event.getWorld().setBlockToAir(event.getPos());
                 //event.world.playAuxSFX(2001, event.getPos(), Block.getIdFromBlock(block) + (meta << 12));
@@ -155,116 +200,135 @@ public class AvaritiaEventHandler {
         }
     }
 
-    @SubscribeEvent
-    public void handleExtraLuck(HarvestDropsEvent event) {
-        if (event.getHarvester() == null) {
-            return;
-        }
-        ItemStack mainHand = event.getHarvester().getHeldItem(EnumHand.MAIN_HAND);
+//    @SubscribeEvent
+//    public void handleExtraLuck(BlockEvent.BreakEvent event) { // This got replaced by adding fortune enchantment
+//        if (event.getPlayer() == null) {
+//            return;
+//        }
+//        ItemStack mainHand = event.getPlayer().getMainHandItem();
+//
+//        if (!mainHand.isEmpty() && mainHand.getItem() == ModItems.infinity_pickaxe) {
+//            applyLuck(event, 4);
+//        }
+//    }
 
-        if (!mainHand.isEmpty() && mainHand.getItem() == ModItems.infinity_pickaxe) {
-            applyLuck(event, 4);
-        }
-    }
 
-    public static void applyLuck(HarvestDropsEvent event, int multiplier) {
-        //Only do stuff on rock.
-        if (event.getState().getMaterial() == Material.ROCK) {
-            List<ItemStack> adds = new ArrayList<>();
-            List<ItemStack> removals = new ArrayList<>();
 
-            for (ItemStack drop : event.getDrops()) {
-                //We are a drop that is not the same as the Blocks ItemBlock and the drop itself is not an ItemBlock, AKA, Redstone, Lapis.
-                if (drop.getItem() != Item.getItemFromBlock(event.getState().getBlock()) && !(drop.getItem() instanceof ItemBlock)) {
-                    //Apply standard Luck modifier
-                    drop.setCount(Math.min(drop.getCount() * multiplier, drop.getMaxStackSize()));
-                } else if (ConfigHandler.fracturedOres && drop.getItem() == Item.getItemFromBlock(event.getState().getBlock())) {
-                    //kk, we are an ore block, Lets test for oreDict and add fractured ores.
-                    ItemFracturedOre fracturedOre = ModItems.fractured_ore;
-                    int[] iDs = OreDictionary.getOreIDs(drop);
-                    for (int id : iDs) {
-                        String oreName = OreDictionary.getOreName(id);
-                        if (oreName.startsWith("ore")) {
-                            // add the fractured ores
-                            adds.add(fracturedOre.getStackForOre(drop, Math.min(drop.getCount() * (multiplier + 1), drop.getMaxStackSize())));
-                            removals.add(drop);
-                            break;
-                        }
-                    }
-                }
-            }
-            event.getDrops().addAll(adds);
-            event.getDrops().removeAll(removals);
-        }
-    }
+//    public static void applyLuck(BlockEvent.BreakEvent event, int multiplier) { // This got replaced by adding fortune enchantment
+//        //Only do stuff on stone.
+//        if (event.getState().getMaterial() == Material.STONE) {
+//            List<ItemStack> adds = new ArrayList<>();
+//            List<ItemStack> removals = new ArrayList<>();
+//            World world = (World) event.getWorld();
+//
+//            for (ItemStack drop : Block.getDrops(event.getState(), (ServerWorld) event.getWorld(), event.getPos(), world.getBlockEntity(event.getPos()))) {
+//                //We are a drop that is not the same as the Blocks ItemBlock and the drop itself is not an ItemBlock, AKA, Redstone, Lapis.
+//                if (drop.getItem() != Item.BY_BLOCK.get(event.getState().getBlock()) && !(drop.getItem() instanceof BlockItem)) {
+//                    //Apply standard Luck modifier
+//                    drop.setCount(Math.min(drop.getCount() * multiplier, drop.getMaxStackSize()));
+//                } else if (ConfigHandler.fracturedOres && drop.getItem() == Item.BY_BLOCK.get(event.getState().getBlock())) {
+//                    //kk, we are an ore block, Lets test for oreDict and add fractured ores.
+//                    ItemFracturedOre fracturedOre = ModItems.fractured_ore;
+//                    int[] iDs = OreDictionary.getOreIDs(drop);
+//                    for (int id : iDs) {
+//                        String oreName = OreDictionary.getOreName(id);
+//                        if (oreName.startsWith("ore")) {
+//                            // add the fractured ores
+//                            adds.add(fracturedOre.getStackForOre(drop, Math.min(drop.getCount() * (multiplier + 1), drop.getMaxStackSize())));
+//                            removals.add(drop);
+//                            break;
+//                        }
+//                    }
+//                }
+//            }
+//
+//            event.getDrops().addAll(adds);
+//            event.getDrops().removeAll(removals);
+//            event.setCanceled(true);
+//        }
+//    }
 
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent event) {
         if (event.getItemStack().getItem() instanceof ItemSwordInfinity) {
             for (int x = 0; x < event.getToolTip().size(); x++) {
-                if (event.getToolTip().get(x).contains(I18n.translateToLocal("attribute.name.generic.attackDamage")) || event.getToolTip().get(x).contains(I18n.translateToLocal("Attack Damage"))) {
-                    event.getToolTip().set(x, TextFormatting.BLUE + "+" + TextUtils.makeFabulous(I18n.translateToLocal("tip.infinity")) + " " + TextFormatting.BLUE + I18n.translateToLocal("attribute.name.generic.attackDamage"));
+
+                if (event.getToolTip().get(x).getContents().equals("attribute.name.generic.attackDamage")) {
+                    ITextComponent tooltip = new StringTextComponent(" ")
+                            .append(new StringTextComponent(TextUtils.makeFabulous(I18n.get("tip.infinity"))))
+                            .append(new TranslationTextComponent("attribute.name.generic.attackDamage").withStyle(TextFormatting.GRAY));
+                    event.getToolTip().set(x, tooltip);
                     return;
+                } else {
+                    List<ITextComponent> siblings = event.getToolTip().get(x).getSiblings();
+                    for (int y = 0; y < siblings.size(); y++) {
+                        if (siblings.get(y).getContents().equals("attribute.name.generic.attackDamage")) {
+                            ITextComponent tooltip = new StringTextComponent(" ")
+                                    .append(new StringTextComponent(TextUtils.makeFabulous(I18n.get("tip.infinity"))))
+                                    .append(new TranslationTextComponent("attribute.name.generic.attackDamage").withStyle(TextFormatting.GRAY));
+                            siblings.set(x, tooltip);
+                            return;
+                        }
+                    }
                 }
+
             }
         }
     }
 
     @SubscribeEvent
     public void onGetHurt(LivingHurtEvent event) {
-        if (!(event.getEntityLiving() instanceof EntityPlayer)) {
+        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
             return;
         }
-        EntityPlayer player = (EntityPlayer) event.getEntityLiving();
-        if (!player.getHeldItemMainhand().isEmpty() && player.getHeldItemMainhand().getItem() == ModItems.infinity_sword && player.isHandActive()) {//TODO Blocking? Maybe add a shield?
+        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        if (!player.getMainHandItem().isEmpty() && player.getMainHandItem().getItem() == ModItems.infinity_sword && player.isUsingItem()) {//TODO Blocking? Maybe add a shield?
             event.setCanceled(true);
         }
-        if (isInfinite(player) && !event.getSource().damageType.equals("infinity")) {
+        if (isInfinite(player) && !(event.getSource() instanceof DamageSourceInfinitySword)) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     public void onAttacked(LivingAttackEvent event) {
-        if (!(event.getEntityLiving() instanceof EntityPlayer)) {
+        if (!(event.getEntityLiving() instanceof PlayerEntity)) {
             return;
         }
-        if (event.getSource().getTrueSource() != null && event.getSource().getTrueSource() instanceof EntityPlayer) {
+        if (event.getSource().getDirectEntity() != null && event.getSource().getDirectEntity() instanceof PlayerEntity) {
             return;
         }
-        EntityPlayer player = (EntityPlayer) event.getEntityLiving();
-        if (isInfinite(player) && !event.getSource().damageType.equals("infinity")) {
+        PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+        if (isInfinite(player) && !(event.getSource() instanceof DamageSourceInfinitySword)) {
             event.setCanceled(true);
         }
     }
 
     @SubscribeEvent
     public void onLivingDrops(LivingDropsEvent event) {
-        if (event.isRecentlyHit() && event.getEntityLiving() instanceof EntitySkeleton && event.getSource().getTrueSource() instanceof EntityPlayer) {
-            EntityPlayer player = (EntityPlayer) event.getSource().getTrueSource();
-            if (!player.getHeldItem(EnumHand.MAIN_HAND).isEmpty() && player.getHeldItem(EnumHand.MAIN_HAND).getItem() == ModItems.skull_sword) {
+        if (event.isRecentlyHit() && event.getEntityLiving() instanceof SkeletonEntity && event.getSource().getDirectEntity() instanceof PlayerEntity) { // TODO: this logic is very BORKED
+            PlayerEntity player = (PlayerEntity) event.getSource().getDirectEntity();
+            if (!player.getMainHandItem().isEmpty() && player.getMainHandItem().getItem() == ModItems.skull_sword) {
                 // ok, we need to drop a skull then.
                 if (event.getDrops().isEmpty()) {
-                    addDrop(event, new ItemStack(Items.SKULL, 1, 1));
+                    addDrop(event, new ItemStack(Items.WITHER_SKELETON_SKULL, 1));
                 } else {
                     int skulls = 0;
-
-                    for (int i = 0; i < event.getDrops().size(); i++) {
-                        EntityItem drop = event.getDrops().get(i);
+                    for (ItemEntity drop : event.getDrops()) {
                         ItemStack stack = drop.getItem();
-                        if (stack.getItem() == Items.SKULL) {
-                            if (stack.getItemDamage() == 1) {
+                        if (stack.getItem() instanceof SkullItem) {
+                            if (stack.getCount() == 1) {
                                 skulls++;
-                            } else if (stack.getItemDamage() == 0) {
+                            } else if (stack.getCount() == 0) {
                                 skulls++;
-                                stack.setItemDamage(1);
+                                stack.setCount(1);
                             }
                         }
                     }
 
                     if (skulls == 0) {
-                        addDrop(event, new ItemStack(Items.SKULL, 1, 1));
+                        addDrop(event, new ItemStack(Items.WITHER_SKELETON_SKULL, 1));
                     }
                 }
 
@@ -274,17 +338,17 @@ public class AvaritiaEventHandler {
 
     @SubscribeEvent
     public void diggity(BreakSpeed event) {
-        if (!event.getEntityLiving().getHeldItem(EnumHand.MAIN_HAND).isEmpty()) {
-            ItemStack held = event.getEntityLiving().getHeldItem(EnumHand.MAIN_HAND);
+        if (!event.getEntityLiving().getMainHandItem().isEmpty()) {
+            ItemStack held = event.getEntityLiving().getMainHandItem();
             if (held.getItem() == ModItems.infinity_pickaxe || held.getItem() == ModItems.infinity_shovel) {
-                if (!event.getEntityLiving().onGround) {
+                if (!event.getEntityLiving().isOnGround()) {
                     event.setNewSpeed(event.getNewSpeed() * 5);
                 }
-                if (!event.getEntityLiving().isInsideOfMaterial(Material.WATER) && !EnchantmentHelper.getAquaAffinityModifier(event.getEntityLiving())) {
+                if (!event.getEntityLiving().isInWater() && !EnchantmentHelper.hasAquaAffinity(event.getEntityLiving())) {
                     event.setNewSpeed(event.getNewSpeed() * 5);
                 }
-                if (held.getTagCompound() != null) {
-                    if (held.getTagCompound().getBoolean("hammer") || held.getTagCompound().getBoolean("destroyer")) {
+                if (held.getTag() != null) {
+                    if (held.getTag().getBoolean("hammer") || held.getTag().getBoolean("destroyer")) {
                         event.setNewSpeed(event.getNewSpeed() * 0.5F);
                     }
                 }
@@ -294,10 +358,10 @@ public class AvaritiaEventHandler {
 
     @SubscribeEvent
     public void canHarvest(PlayerEvent.HarvestCheck event) {
-        if (!event.getEntityLiving().getHeldItem(EnumHand.MAIN_HAND).isEmpty()) {
-            ItemStack held = event.getEntityLiving().getHeldItem(EnumHand.MAIN_HAND);
-            if (held.getItem() == ModItems.infinity_shovel && event.getTargetBlock().getMaterial() == Material.ROCK) {
-                if (held.getTagCompound() != null && held.getTagCompound().getBoolean("destroyer") && isGarbageBlock(event.getTargetBlock().getBlock())) {
+        if (!event.getEntityLiving().getMainHandItem().isEmpty()) {
+            ItemStack held = event.getEntityLiving().getMainHandItem();
+            if (held.getItem() == ModItems.infinity_shovel && event.getTargetBlock().getMaterial() == Material.STONE) {
+                if (held.getTag() != null && held.getTag().getBoolean("destroyer") && isGarbageBlock(event.getTargetBlock().getBlock())) {
                     event.setResult(Event.Result.ALLOW);
                 }
             }
@@ -305,21 +369,17 @@ public class AvaritiaEventHandler {
     }
 
     private static boolean isGarbageBlock(Block block) {
-        for (int id : OreDictionary.getOreIDs(new ItemStack(block, 1))) {
-            String ore = OreDictionary.getOreName(id);
-            if (ore.equals("cobblestone") || ore.equals("stone") || ore.equals("netherrack")) {
-                return true;
-            }
-        }
+        return block == Blocks.COBBLESTONE
+                || block == Blocks.STONE
+                || block == Blocks.NETHERRACK;
 
-        return false;
     }
 
     @SubscribeEvent
     public void onDeath(LivingDeathEvent event) {
-        if (event.getEntityLiving() instanceof EntityPlayer) {
-            EntityPlayer player = (EntityPlayer) event.getEntityLiving();
-            if (isInfinite(player) && !event.getSource().getDamageType().equals("infinity")) {
+        if (event.getEntityLiving() instanceof PlayerEntity) {
+            PlayerEntity player = (PlayerEntity) event.getEntityLiving();
+            if (isInfinite(player) && !(event.getSource() instanceof DamageSourceInfinitySword)) {
                 event.setCanceled(true);
                 player.setHealth(player.getMaxHealth());
             }
@@ -327,21 +387,19 @@ public class AvaritiaEventHandler {
     }
 
     private void addDrop(LivingDropsEvent event, ItemStack drop) {
-        EntityItem entityitem = new EntityItem(event.getEntityLiving().world, event.getEntityLiving().posX, event.getEntityLiving().posY, event.getEntityLiving().posZ, drop);
-        entityitem.setDefaultPickupDelay();
+        ItemEntity entityitem = new ItemEntity(event.getEntityLiving().level, event.getEntityLiving().getX(), event.getEntityLiving().getY(), event.getEntityLiving().getZ(), drop);
+        entityitem.setDefaultPickUpDelay();
         event.getDrops().add(entityitem);
     }
 
     @SubscribeEvent
     public void clusterClustererererer(EntityItemPickupEvent event) {
-        if (event.getEntityPlayer() != null && event.getItem().getItem().getItem() == ModItems.matter_cluster) {
+        if (event.getPlayer() != null && event.getItem().getItem().getItem() == ModItems.matter_cluster) {
             ItemStack stack = event.getItem().getItem();
-            EntityPlayer player = event.getEntityPlayer();
+            if (stack.isEmpty()) return;
+            PlayerEntity player = event.getPlayer();
 
-            for (ItemStack slot : player.inventory.mainInventory) {
-                if (stack.isEmpty()) {
-                    break;
-                }
+            for (ItemStack slot : player.inventory.items) {
                 if (slot.getItem() == ModItems.matter_cluster) {
                     ItemMatterCluster.mergeClusters(stack, slot);
                 }

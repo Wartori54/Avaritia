@@ -2,24 +2,24 @@ package morph.avaritia.api;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 public interface IHaloRenderItem {
 
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     boolean shouldDrawHalo(ItemStack stack);
 
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     TextureAtlasSprite getHaloTexture(ItemStack stack);
 
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     int getHaloColour(ItemStack stack);
 
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     int getHaloSize(ItemStack stack);
 
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     boolean shouldDrawPulse(ItemStack stack);
 
 }

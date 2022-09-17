@@ -20,15 +20,15 @@ public class CosmicShaderHelper {
             @Override
             public void call(int shader) {
                 //TODO, This can be optimized.
-                Minecraft mc = Minecraft.getMinecraft();
+                Minecraft mc = Minecraft.getInstance();
 
                 float yaw = 0;
                 float pitch = 0;
                 float scale = 1.0f;
 
                 if (!inventoryRender) {
-                    yaw = (float) ((mc.player.rotationYaw * 2 * Math.PI) / 360.0);
-                    pitch = -(float) ((mc.player.rotationPitch * 2 * Math.PI) / 360.0);
+                    yaw = (float) ((mc.player.yRot * 2 * Math.PI) / 360.0);
+                    pitch = -(float) ((mc.player.xRot * 2 * Math.PI) / 360.0);
                 } else {
                     scale = 25.0f;
                 }
@@ -46,7 +46,7 @@ public class CosmicShaderHelper {
                 ARBShaderObjects.glUniform1fARB(lightmix, 0.2f);
 
                 int uvs = ARBShaderObjects.glGetUniformLocationARB(shader, "cosmicuvs");
-                ARBShaderObjects.glUniformMatrix2ARB(uvs, false, AvaritiaClientEventHandler.cosmicUVs);
+                ARBShaderObjects.glUniformMatrix2fvARB(uvs, false, AvaritiaClientEventHandler.cosmicUVs);
 
                 int s = ARBShaderObjects.glGetUniformLocationARB(shader, "externalScale");
                 ARBShaderObjects.glUniform1fARB(s, scale);
@@ -71,9 +71,9 @@ public class CosmicShaderHelper {
             return;
         }
 
-        int coord = world.getCombinedLight(pos, 0);
+        int coord = world.getRawBrightness(pos, 0);
 
-        int[] map = Minecraft.getMinecraft().entityRenderer.lightmapColors;
+        int[] map = null; // Minecraft.getInstance().entityRenderer.lightmapColors; TODO: fix this
         if (map == null) {
             setLightLevel(1.0f);
             return;

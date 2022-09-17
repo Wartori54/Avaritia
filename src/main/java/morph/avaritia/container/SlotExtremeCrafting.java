@@ -1,10 +1,10 @@
 package morph.avaritia.container;
 
 import morph.avaritia.recipe.AvaritiaRecipeManager;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.InventoryCrafting;
-import net.minecraft.inventory.Slot;
+import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
 
@@ -13,70 +13,70 @@ import net.minecraft.util.NonNullList;
  */
 public class SlotExtremeCrafting extends Slot {
 
-    private final InventoryCrafting craftMatrix;
-    private final EntityPlayer player;
+    private final CraftingInventory craftMatrix;
+    private final PlayerEntity player;
     private int amountCrafted;
 
-    public SlotExtremeCrafting(EntityPlayer player, InventoryCrafting craftingInventory, IInventory inventoryIn, int slotIndex, int xPosition, int yPosition) {
+    public SlotExtremeCrafting(PlayerEntity player, CraftingInventory craftingInventory, IInventory inventoryIn, int slotIndex, int xPosition, int yPosition) {
         super(inventoryIn, slotIndex, xPosition, yPosition);
         this.player = player;
         craftMatrix = craftingInventory;
     }
 
     @Override
-    public boolean isItemValid(ItemStack stack) {
+    public boolean mayPlace(ItemStack stack) {
         return false;
     }
 
     @Override
-    public ItemStack decrStackSize(int amount) {
-        if (getHasStack()) {
-            amountCrafted += Math.min(amount, getStack().getCount());
+    public ItemStack remove(int amount) {
+        if (!getItem().isEmpty()) {
+            amountCrafted += Math.min(amount, craftMatrix.getItem(getSlotIndex()).getCount());
         }
 
-        return super.decrStackSize(amount);
+        return super.remove(amount);
     }
 
     @Override
-    protected void onCrafting(ItemStack stack, int amount) {
+    protected void onQuickCraft(ItemStack stack, int amount) {
         amountCrafted += amount;
-        onCrafting(stack);
+        this.checkTakeAchievements(stack);
     }
 
     @Override
-    protected void onCrafting(ItemStack stack) {
+    protected void checkTakeAchievements(ItemStack stack) {
         if (amountCrafted > 0) {
-            stack.onCrafting(player.world, player, amountCrafted);
-            net.minecraftforge.fml.common.FMLCommonHandler.instance().firePlayerCraftingEvent(player, stack, craftMatrix);
+            stack.onCraftedBy(player.level, player, amountCrafted);
+            net.minecraftforge.fml.hooks.BasicEventHooks.firePlayerCraftingEvent(this.player, stack, this.craftMatrix);
         }
 
         amountCrafted = 0;
     }
 
     @Override
-    public ItemStack onTake(EntityPlayer playerIn, ItemStack stack) {
-        onCrafting(stack);
+    public ItemStack onTake(PlayerEntity playerIn, ItemStack stack) {
+        this.checkTakeAchievements(stack);
         net.minecraftforge.common.ForgeHooks.setCraftingPlayer(playerIn);
-        NonNullList<ItemStack> slots = AvaritiaRecipeManager.getRemainingItems(craftMatrix, playerIn.world);
+        NonNullList<ItemStack> slots = AvaritiaRecipeManager.getRemainingItems(craftMatrix, playerIn.level);
         net.minecraftforge.common.ForgeHooks.setCraftingPlayer(null);
 
         for (int i = 0; i < slots.size(); ++i) {
-            ItemStack itemstack = craftMatrix.getStackInSlot(i);
+            ItemStack itemstack = craftMatrix.getItem(i);
             ItemStack itemstack1 = slots.get(i);
 
             if (!itemstack.isEmpty()) {
-                craftMatrix.decrStackSize(i, 1);
-                itemstack = craftMatrix.getStackInSlot(i);
+                craftMatrix.removeItem(i, 1);
+                itemstack = craftMatrix.getItem(i);
             }
 
             if (!itemstack1.isEmpty()) {
                 if (itemstack.isEmpty()) {
-                    craftMatrix.setInventorySlotContents(i, itemstack1);
-                } else if (ItemStack.areItemsEqual(itemstack, itemstack1) && ItemStack.areItemStackTagsEqual(itemstack, itemstack1)) {
+                    craftMatrix.setItem(i, itemstack1);
+                } else if (ItemStack.isSame(itemstack, itemstack1) && ItemStack.tagMatches(itemstack, itemstack1)) {
                     itemstack1.grow(itemstack.getCount());
-                    craftMatrix.setInventorySlotContents(i, itemstack1);
-                } else if (!player.inventory.addItemStackToInventory(itemstack1)) {
-                    player.dropItem(itemstack1, false);
+                    craftMatrix.setItem(i, itemstack1);
+                } else if (!player.inventory.add(itemstack1)) {
+                    player.drop(itemstack1, false);
                 }
             }
         }

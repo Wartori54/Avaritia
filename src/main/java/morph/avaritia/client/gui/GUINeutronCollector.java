@@ -1,47 +1,52 @@
 package morph.avaritia.client.gui;
 
 import codechicken.lib.math.MathHelper;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
 import morph.avaritia.container.ContainerNeutronCollector;
 import morph.avaritia.tile.TileNeutronCollector;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-@SideOnly (Side.CLIENT)
-public class GUINeutronCollector extends GuiMachineBase<TileNeutronCollector, ContainerNeutronCollector> {
+@OnlyIn(Dist.CLIENT)
+public class GUINeutronCollector extends GuiMachineBase<ContainerNeutronCollector> {
 
     private static final ResourceLocation GUI_TEX = new ResourceLocation("avaritia", "textures/gui/neutron_collector_gui.png");
 
-    public GUINeutronCollector(InventoryPlayer player, TileNeutronCollector machine) {
-        super(new ContainerNeutronCollector(player, machine));
+    private TileNeutronCollector collector = null;
+
+    public GUINeutronCollector(ContainerNeutronCollector container, PlayerInventory player, ITextComponent name) {
+        super(container, player, name);
         setBackgroundTexture(GUI_TEX);
     }
 
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
-        this.renderHoveredToolTip(mouseX, mouseY);
+    public void render(MatrixStack stack, int mouseX, int mouseY, float partialTicks) {
+        this.renderBackground(stack);
+        super.render(stack, mouseX, mouseY, partialTicks);
+        this.renderTooltip(stack, mouseX, mouseY);
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-
-        String s = I18n.format("container.neutron_collector");
-        float scaled_progress = scaleF(machineTile.getProgress(), TileNeutronCollector.PRODUCTION_TICKS, 100);
-        String progress = "Progress: " + MathHelper.round(scaled_progress, 10) + "%";
-
-        fontRenderer.drawString(s, xSize / 2 - fontRenderer.getStringWidth(s) / 2, 6, 0x404040);
-        fontRenderer.drawString(progress, xSize / 2 - fontRenderer.getStringWidth(progress) / 2, 60, 0x404040);
-        fontRenderer.drawString(I18n.format("container.inventory"), 8, ySize - 96 + 2, 0x404040);
+    protected void renderLabels(MatrixStack stack, int mouseX, int mouseY) {
+        super.renderLabels(stack, mouseX, mouseY);
+//        ITextComponent s = new TranslationTextComponent("container.neutron_collector");
+        float scaled_progress = scaleF(this.menu.getProgress(), this.menu.getTotalProgress(), 100);
+        ITextComponent progress = new StringTextComponent("Progress: " + MathHelper.round(scaled_progress, 10) + "%"); // TODO: make this TranslationTextComponent
+//        this.font.draw(stack, s, width / 2F - font.width(s) / 2F, 6, 0x404040);
+        this.font.draw(stack, progress, this.imageWidth / 2F - font.width(progress) / 2F, this.imageHeight - 104, 0x404040);
+//        this.font.draw(stack, new TranslationTextComponent("container.inventory"), 8, height - 96 + 2, 0x404040);
     }
 
     @Override
-    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-        drawBackground();
-        super.drawGuiContainerBackgroundLayer(partialTicks, mouseX, mouseY);
+    protected void renderBg(MatrixStack stack, float partialTicks, int mouseX, int mouseY) {
+        RenderSystem.color4f(1.0F, 1.0F, 1.0F, 1.0F);
+        drawBackground(stack);
+        super.renderBg(stack, partialTicks, mouseX, mouseY);
     }
 }

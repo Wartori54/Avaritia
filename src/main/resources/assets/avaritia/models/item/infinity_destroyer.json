@@ -1,0 +1,6 @@
+{
+  "parent": "avaritia:item/infinity_shovel",
+  "textures": {
+    "layer0": "avaritia:items/tools/infinity_shovel/destroyer"
+  }
+}

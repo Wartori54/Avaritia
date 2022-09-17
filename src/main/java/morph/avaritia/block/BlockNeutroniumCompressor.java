@@ -1,124 +1,120 @@
 package morph.avaritia.block;
 
 import codechicken.lib.util.ItemUtils;
-import codechicken.lib.util.RotationUtils;
-import morph.avaritia.Avaritia;
 import morph.avaritia.api.registration.IModelRegister;
-import morph.avaritia.init.AvaritiaProps;
+import morph.avaritia.init.ModBlocks;
 import morph.avaritia.tile.TileNeutroniumCompressor;
-import net.minecraft.block.BlockContainer;
-import net.minecraft.block.SoundType;
+import morph.avaritia.util.ModHelper;
+import net.minecraft.block.*;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
-import net.minecraft.client.renderer.block.statemap.StateMapperBase;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.BlockItemUseContext;
+import net.minecraft.state.BooleanProperty;
+import net.minecraft.state.StateContainer;
+import net.minecraft.state.properties.BlockStateProperties;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumHand;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.world.IBlockReader;
 import net.minecraft.world.World;
-import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ToolType;
 
-public class BlockNeutroniumCompressor extends BlockContainer implements IModelRegister {
+import javax.annotation.Nullable;
+
+public class BlockNeutroniumCompressor extends ContainerBlock implements IModelRegister {
+
+
 
     public BlockNeutroniumCompressor() {
-        super(Material.IRON);
-        setSoundType(SoundType.METAL);
-        setHardness(20);
-        setUnlocalizedName("avaritia:neutronium_compressor");
-        setRegistryName("neutronium_compressor");
-        setHarvestLevel("pickaxe", 3);
-        setCreativeTab(Avaritia.tab);
-        setDefaultState(getDefaultState().withProperty(AvaritiaProps.HORIZONTAL_FACING, EnumFacing.NORTH).withProperty(AvaritiaProps.ACTIVE, false));
+        super(AbstractBlock.Properties.of(Material.METAL)
+                .sound(SoundType.METAL)
+                .requiresCorrectToolForDrops()
+                .harvestTool(ToolType.PICKAXE)
+                .harvestLevel(3)
+                .strength(20));
+
+        this.registerDefaultState(
+                this.getStateDefinition().any()
+                        .setValue(BlockStateProperties.HORIZONTAL_FACING, Direction.NORTH)
+                        .setValue(ModHelper.ACTIVE, false)
+        );
     }
 
     @Override
-    protected BlockStateContainer createBlockState() {
-        return new BlockStateContainer(this, AvaritiaProps.HORIZONTAL_FACING, AvaritiaProps.ACTIVE);
+    protected void createBlockStateDefinition(StateContainer.Builder<Block, BlockState> builder) {
+        builder.add(BlockStateProperties.HORIZONTAL_FACING).add(ModHelper.ACTIVE);
+    }
+
+//    @Override
+//    public IBlockState getActualState(IBlockState state, IBlockAccess worldIn, BlockPos pos) {
+//        TileEntity tileEntity = worldIn.getTileEntity(pos);
+//        if (tileEntity instanceof TileNeutroniumCompressor) {
+//            TileNeutroniumCompressor compressor = (TileNeutroniumCompressor) tileEntity;
+//            state = state.withProperty(AvaritiaProps.HORIZONTAL_FACING, compressor.getFacing());
+//            state = state.withProperty(AvaritiaProps.ACTIVE, compressor.isActive());
+//        }
+//        return super.getActualState(state, worldIn, pos);
+//    }
+
+    @Nullable
+    @Override
+    public BlockState getStateForPlacement(BlockItemUseContext ctx) {
+        Direction direction = ctx.getHorizontalDirection().getOpposite();
+        return this.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, direction);
     }
 
     @Override
-    public int getMetaFromState(IBlockState state) {
-        return 0;
-    }
-
-    @Override
-    public IBlockState getActualState(IBlockState state, IBlockAccess worldIn, BlockPos pos) {
-        TileEntity tileEntity = worldIn.getTileEntity(pos);
-        if (tileEntity instanceof TileNeutroniumCompressor) {
-            TileNeutroniumCompressor compressor = (TileNeutroniumCompressor) tileEntity;
-            state = state.withProperty(AvaritiaProps.HORIZONTAL_FACING, compressor.getFacing());
-            state = state.withProperty(AvaritiaProps.ACTIVE, compressor.isActive());
-        }
-        return super.getActualState(state, worldIn, pos);
-    }
-
-    @Override
-    public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing side, float hitX, float hitY, float hitZ) {
-        if (world.isRemote) {
-            return true;
+    public ActionResultType use(BlockState blockState, World world, BlockPos blockPos, PlayerEntity player, Hand hand, BlockRayTraceResult blockRayTraceResult) {
+        if (world.isClientSide()) {
+            return ActionResultType.SUCCESS;
         } else {
-            player.openGui(Avaritia.instance, 3, world, pos.getX(), pos.getY(), pos.getZ());
-            return true;
+            player.openMenu(blockState.getMenuProvider(world, blockPos));
+            return ActionResultType.CONSUME;
         }
     }
 
     @Override
-    public TileEntity createNewTileEntity(World world, int meta) {
+    public TileEntity newBlockEntity(IBlockReader blockReader) {
         return new TileNeutroniumCompressor();
     }
 
-    @Override
-    public void onBlockPlacedBy(World world, BlockPos pos, IBlockState state, EntityLivingBase player, ItemStack stack) {
-        TileEntity tile = world.getTileEntity(pos);
-        if (tile instanceof TileNeutroniumCompressor) {
-            TileNeutroniumCompressor machine = (TileNeutroniumCompressor) tile;
-            machine.setFacing(RotationUtils.getPlacedRotationHorizontal(player));
-        }
-
-    }
 
     @Override
-    public void breakBlock(World world, BlockPos pos, IBlockState state) {
-        TileNeutroniumCompressor compressor = (TileNeutroniumCompressor) world.getTileEntity(pos);
+    public void onRemove(BlockState oldState, World world, BlockPos blockPos, BlockState newState, boolean bool) {
+        TileNeutroniumCompressor compressor = (TileNeutroniumCompressor) world.getBlockEntity(blockPos);
 
         if (compressor != null) {
-            ItemUtils.dropInventory(world, pos, compressor);
+            ItemUtils.dropInventory(world, blockPos, compressor);
         }
 
-        super.breakBlock(world, pos, state);
+        super.onRemove(oldState, world, blockPos, newState, bool);
     }
 
     @Override
-    public EnumBlockRenderType getRenderType(IBlockState state) {
-        return EnumBlockRenderType.MODEL;
+    public BlockRenderType getRenderShape(BlockState state) {
+        return BlockRenderType.MODEL;
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public void registerModels() {
-        ResourceLocation location = new ResourceLocation("avaritia:machine");
-        ModelLoader.setCustomStateMapper(this, new StateMapperBase() {
-            @Override
-            protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
-                String modelLoc = "type=neutronium_compressor";
-                modelLoc += ",facing=" + state.getValue(AvaritiaProps.HORIZONTAL_FACING).getName();
-                modelLoc += ",active=" + state.getValue(AvaritiaProps.ACTIVE).toString().toLowerCase();
-                return new ModelResourceLocation(location, modelLoc);
-            }
-        });
-        ModelResourceLocation invLoc = new ModelResourceLocation(location, "type=neutronium_compressor,facing=north,active=true");
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this), 0, invLoc);
-        ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(this), stack -> invLoc);
+//        ResourceLocation location = new ResourceLocation("avaritia:machine");
+//        ModelLoader.setCustomStateMapper(this, new StateMapperBase() {
+//            @Override
+//            protected ModelResourceLocation getModelResourceLocation(IBlockState state) {
+//                String modelLoc = "type=neutronium_compressor";
+//                modelLoc += ",facing=" + state.getValue(AvaritiaProps.HORIZONTAL_FACING).getName();
+//                modelLoc += ",active=" + state.getValue(AvaritiaProps.ACTIVE).toString().toLowerCase();
+//                return new ModelResourceLocation(location, modelLoc);
+//            }
+//        });
+//        ModelResourceLocation invLoc = new ModelResourceLocation(location, "type=neutronium_compressor,facing=north,active=true");
+//        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(this), 0, invLoc);
+//        ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(this), stack -> invLoc);
     }
 }

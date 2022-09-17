@@ -100,6 +100,7 @@ crafting.extreme=Xtrem tillverkning
 crafting.extreme.shapeless=Xtremt formlöst
 crafting.extreme_compression=Neutroniumkompressor
 tip.infinity=Oändlighet
+tip.sanic=SANIC
 death.attack.infinity=%1$s utplånades av %2$s
 death.attack.infinity.item=%1$s utplånades av %2$s
 death.attack.infinity.1=%1$s strimlades av %2$s

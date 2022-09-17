@@ -2,16 +2,19 @@ package net.covers1624.lib.gui;
 
 import codechicken.lib.texture.TextureUtils;
 import codechicken.lib.vec.Rectangle4i;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+import morph.avaritia.container.ContainerMachineBase;
 import net.covers1624.lib.gui.DrawableGuiElement.AnimationDirection;
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.inventory.Container;
+import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.awt.*;
+import java.awt.Point;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -19,13 +22,13 @@ import java.util.function.Supplier;
 /**
  * Created by covers1624 on 21/05/2017.
  */
-public abstract class GuiAnimBase extends GuiContainer {
+public abstract class GuiAnimBase<T extends ContainerMachineBase> extends ContainerScreen<T> {
 
     private Set<DrawableGuiElement> drawableElements = new HashSet<>();
     private ResourceLocation BACKGROUND_TEX;
 
-    public GuiAnimBase(Container container) {
-        super(container);
+    public GuiAnimBase(T container, PlayerInventory playerInventory, ITextComponent name) {
+        super(container, playerInventory, name);
     }
 
     protected void setBackgroundTexture(ResourceLocation location) {
@@ -33,33 +36,39 @@ public abstract class GuiAnimBase extends GuiContainer {
     }
 
     @Override
-    protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(-guiLeft, -guiTop, 0);
+    public void render(MatrixStack stack, int mouseX, int mouseY, float partialTicks) {
+        super.render(stack, mouseX, mouseY, partialTicks);
+        renderFg(stack, mouseX, mouseY, partialTicks);
+    }
+
+//    @Override // no override cuz super method is gone, just call after render
+    protected void renderFg(MatrixStack stack, int mouseX, int mouseY, float partialTicks) {
+        RenderSystem.pushMatrix();
+        RenderSystem.translatef(-leftPos, -topPos, 0);
         for (DrawableGuiElement drawableGuiElement : drawableElements) {
             Point guiPos = getGuiPos();
             Rectangle4i bounds = drawableGuiElement.getBounds().offset(guiPos.x, guiPos.y);
             if (bounds.contains(mouseX, mouseY)) {
-                drawableGuiElement.renderTooltip(new Point(mouseX, mouseY));
+                drawableGuiElement.renderTooltip(stack, new Point(mouseX, mouseY), this.font);
                 break;
             }
         }
-        GlStateManager.popMatrix();
+        RenderSystem.popMatrix();
     }
 
     @Override
-    protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
+    protected void renderBg(MatrixStack stack, float partialTicks, int mouseX, int mouseY) {
         Point guiPos = getGuiPos();
-        GlStateManager.pushMatrix();
-        GlStateManager.translate(guiPos.x, guiPos.y, 0);
+        RenderSystem.pushMatrix();
+        RenderSystem.translatef(guiPos.x, guiPos.y, 0);
         for (DrawableGuiElement drawableElement : drawableElements) {
             try {
-                drawableElement.draw();
+                drawableElement.draw(stack);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        GlStateManager.popMatrix();
+        RenderSystem.popMatrix();
     }
 
     protected void addDrawable(DrawableGuiElement element) {
@@ -71,32 +80,32 @@ public abstract class GuiAnimBase extends GuiContainer {
     }
 
     protected Point getGuiPos() {
-        int x = (width - xSize) / 2;
-        int y = (height - ySize) / 2;
+        int x = (width - imageWidth) / 2;
+        int y = (height - imageHeight) / 2;
         return new Point(x, y);
     }
 
-    protected void drawBackground() {
+    protected void drawBackground(MatrixStack stack) {
         Point guiPos = getGuiPos();
         TextureUtils.changeTexture(BACKGROUND_TEX);
-        drawTexturedModalRect(guiPos.x, guiPos.y, 0, 0, xSize, ySize);
+        this.blit(stack, guiPos.x, guiPos.y, 0, 0, imageWidth, imageHeight);
     }
 
     protected static class DrawableBuilder {
 
-        private Gui parent;
+        private ContainerScreen<?> parent;
         private ResourceLocation spriteLocation;
         private Rectangle4i sprite;
         private Point location;
         private BooleanSupplier renderPredicate;
         private Supplier<Pair<Integer, Integer>> animationSupplier;
         private AnimationDirection animationDirection;
-        private Supplier<String> tooltipSupplier;
+        private Supplier<List<ITextComponent>> tooltipSupplier;
 
         public DrawableBuilder() {
         }
 
-        public DrawableBuilder setParent(Gui parent) {
+        public DrawableBuilder setParent(ContainerScreen<?> parent) {
             this.parent = parent;
             return this;
         }
@@ -139,7 +148,7 @@ public abstract class GuiAnimBase extends GuiContainer {
             return this;
         }
 
-        public DrawableBuilder setTooltipSupplier(Supplier<String> tooltipSupplier) {
+        public DrawableBuilder setTooltipSupplier(Supplier<List<ITextComponent>> tooltipSupplier) {
             this.tooltipSupplier = tooltipSupplier;
             return this;
         }

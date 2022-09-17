@@ -1,6 +1,6 @@
 package morph.avaritia.recipe.extreme;
 
-import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.util.NonNullList;
@@ -14,9 +14,9 @@ import net.minecraftforge.registries.IForgeRegistryEntry;
  */
 public interface IExtremeRecipe extends IForgeRegistryEntry<IExtremeRecipe> {
 
-    boolean matches(InventoryCrafting inventory, World world);
+    boolean matches(CraftingInventory inventory);
 
-    default ItemStack getCraftingResult(InventoryCrafting inventory) {
+    default ItemStack getCraftingResult(CraftingInventory inventory) {
         return getRecipeOutput();
     }
 
@@ -24,9 +24,9 @@ public interface IExtremeRecipe extends IForgeRegistryEntry<IExtremeRecipe> {
 
     ItemStack getRecipeOutput();
 
-    default NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv) {
-        return ForgeHooks.defaultRecipeGetRemainingItems(inv);
-    }
+//    default NonNullList<ItemStack> getRemainingItems(CraftingInventory inv) {
+//        return ForgeHooks.defaultRecipeGetRemainingItems(inv);
+//    }
 
     default NonNullList<Ingredient> getIngredients() {
         return NonNullList.create();

@@ -19,7 +19,7 @@ public interface ICompressorRecipe extends IForgeRegistryEntry<ICompressorRecipe
 
     default boolean matches(ItemStack stack) {
         for (Ingredient ing : getIngredients()) {
-            if (ing.apply(stack)) {
+            if (ing.test(stack)) {
                 return true;
             }
         }

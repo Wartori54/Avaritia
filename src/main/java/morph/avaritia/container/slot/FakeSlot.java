@@ -1,8 +1,8 @@
 package morph.avaritia.container.slot;
 
 import codechicken.lib.inventory.InventorySimple;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.block.Blocks;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 
 /**
@@ -16,16 +16,16 @@ public class FakeSlot extends OutputSlot {
     }
 
     @Override
-    public ItemStack getStack() {
-        return new ItemStack(Blocks.NETHER_BRICK);
+    public ItemStack getItem() {
+        return new ItemStack(Blocks.NETHER_BRICKS);
     }
 
     @Override
-    public void putStack(ItemStack stack) {
+    public void set(ItemStack stack) {
     }
 
     @Override
-    public boolean canTakeStack(EntityPlayer playerIn) {
+    public boolean mayPickup(PlayerEntity playerIn) {
         return false;
     }
 

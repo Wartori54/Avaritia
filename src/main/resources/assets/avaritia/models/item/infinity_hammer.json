@@ -1,0 +1,6 @@
+{
+  "parent": "avaritia:item/infinity_pickaxe",
+  "textures": {
+    "layer0": "avaritia:items/tools/infinity_pickaxe/hammer"
+  }
+}

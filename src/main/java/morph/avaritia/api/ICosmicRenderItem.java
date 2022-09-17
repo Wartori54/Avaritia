@@ -1,10 +1,10 @@
 package morph.avaritia.api;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.Nullable;
 
@@ -21,8 +21,8 @@ public interface ICosmicRenderItem {
      * @param player The entity holding the item, May be null, If null assume either inventory, or ground.
      * @return The masked area where the cosmic overlay will be.
      */
-    @SideOnly (Side.CLIENT)
-    TextureAtlasSprite getMaskTexture(ItemStack stack, @Nullable EntityLivingBase player);
+    @OnlyIn(Dist.CLIENT)
+    TextureAtlasSprite getMaskTexture(ItemStack stack, @Nullable LivingEntity player);
 
     /**
      * The opacity that the mask overlay will be rendered with.
@@ -31,6 +31,6 @@ public interface ICosmicRenderItem {
      * @param player The entity holding the item, May be null, If null assume either inventory, or ground.
      * @return The opacity that the mask overlay will be rendered with.
      */
-    @SideOnly (Side.CLIENT)
-    float getMaskOpacity(ItemStack stack, @Nullable EntityLivingBase player);
+    @OnlyIn(Dist.CLIENT)
+    float getMaskOpacity(ItemStack stack, @Nullable LivingEntity player);
 }

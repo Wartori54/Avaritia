@@ -2,24 +2,32 @@ package morph.avaritia.tile;
 
 import codechicken.lib.packet.PacketCustom;
 import codechicken.lib.util.ItemUtils;
+import morph.avaritia.container.ContainerNeutroniumCompressor;
+import morph.avaritia.init.ModContent;
 import morph.avaritia.recipe.AvaritiaRecipeManager;
 import morph.avaritia.recipe.compressor.ICompressorRecipe;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.inventory.container.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.tileentity.TileEntityType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.wrapper.InvWrapper;
 import net.minecraftforge.items.wrapper.SidedInvWrapper;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class TileNeutroniumCompressor extends TileMachineBase implements ISidedInventory {
@@ -42,6 +50,14 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
 
     private static final int[] top = new int[] { 0 };
     private static final int[] sides = new int[] { 1 };
+
+    private static final Direction[] allSides = {Direction.DOWN, Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST, null};
+
+    private final LazyOptional<IItemHandlerModifiable>[] inventoryHandlerLazyOptional = SidedInvWrapper.create(this, allSides);
+
+    public TileNeutroniumCompressor() {
+        super(ModContent.tileNeutroniumCompressor);
+    }
 
     @Override
     public void doWork() {
@@ -81,7 +97,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
         }
 
         if (dirty) {
-            markDirty();
+            setChanged();
         }
     }
 
@@ -100,7 +116,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
             return recipe.matches(input);
         }
         ICompressorRecipe recipe = AvaritiaRecipeManager.getCompressorRecipeFromInput(input);
-        return recipe != null && (output.isEmpty() || (recipe.getResult().isItemEqual(output) && output.getCount() < Math.min(output.getMaxStackSize(), getInventoryStackLimit())));
+        return recipe != null && (output.isEmpty() || (recipe.getResult().sameItem(output) && output.getCount() < Math.min(output.getMaxStackSize(), getMaxStackSize())));
     }
 
     @Override
@@ -119,7 +135,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
             if (!target_stack.isEmpty()) {
                 ings = AvaritiaRecipeManager.getCompressorRecipeFromResult(target_stack).getIngredients();
             }
-            List<ItemStack> inputs = ings.stream().flatMap(l -> Arrays.stream(l.getMatchingStacks())).collect(Collectors.toList());
+            List<ItemStack> inputs = ings.stream().flatMap(l -> Arrays.stream(l.getItems())).collect(Collectors.toList());
 
             packet.writeInt(inputs.size());
             for (ItemStack input : inputs) {
@@ -176,15 +192,15 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound tag) {
-        super.readFromNBT(tag);
-        input = new ItemStack(tag.getCompoundTag("input"));
-        output = new ItemStack(tag.getCompoundTag("output"));
+    public void load(BlockState state, CompoundNBT tag) {
+        super.load(state, tag);
+        input = ItemStack.of(tag.getCompound("input"));
+        output = ItemStack.of(tag.getCompound("output"));
 
-        consumption_progress = tag.getInteger("consumption_progress");
-        compression_progress = tag.getInteger("compression_progress");
+        consumption_progress = tag.getInt("consumption_progress");
+        compression_progress = tag.getInt("compression_progress");
 
-        target_stack = new ItemStack(tag.getCompoundTag("target"));
+        target_stack = ItemStack.of(tag.getCompound("target"));
         //Calc compression target.
         if (!target_stack.isEmpty()) {
             compression_target = AvaritiaRecipeManager.getCompressorRecipeFromResult(target_stack).getCost();
@@ -193,47 +209,49 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound tag) {
+    public CompoundNBT save(CompoundNBT tag) {
         if (!input.isEmpty()) {
-            NBTTagCompound inputTag = new NBTTagCompound();
-            input.writeToNBT(inputTag);
-            tag.setTag("input", inputTag);
+            CompoundNBT inputTag = new CompoundNBT();
+            input.save(inputTag);
+            tag.put("input", inputTag);
         }
         if (!output.isEmpty()) {
-            NBTTagCompound outputTag = new NBTTagCompound();
-            output.writeToNBT(outputTag);
-            tag.setTag("output", outputTag);
+            CompoundNBT outputTag = new CompoundNBT();
+            output.save(outputTag);
+            tag.put("output", outputTag);
         }
         if (!target_stack.isEmpty()) {
-            NBTTagCompound targetTag = new NBTTagCompound();
-            target_stack.writeToNBT(targetTag);
-            tag.setTag("target", targetTag);
+            CompoundNBT targetTag = new CompoundNBT();
+            target_stack.save(targetTag);
+            tag.put("target", targetTag);
         }
-        tag.setInteger("consumption_progress", consumption_progress);
-        tag.setInteger("compression_progress", compression_progress);
-        return super.writeToNBT(tag);
-    }
-
-    @Override
-    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
-        return capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
+        tag.putInt("consumption_progress", consumption_progress);
+        tag.putInt("compression_progress", compression_progress);
+        return super.save(tag);
     }
 
     @Nullable
     @Override
-    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing side) {
+    public <T> LazyOptional<T> getCapability(Capability<T> capability, @Nullable Direction side) {
         if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
             if (side != null) {
-                return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(new SidedInvWrapper(this, side));
+                return inventoryHandlerLazyOptional[side.ordinal()].cast();
             } else {
-                return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(new InvWrapper(this));
+                return inventoryHandlerLazyOptional[6].cast();
             }
         }
         return super.getCapability(capability, side);
     }
 
     @Override
-    public int getSizeInventory() {
+    protected void invalidateCaps() {
+        super.invalidateCaps();
+        for (int x = 0; x < inventoryHandlerLazyOptional.length; x++)
+            inventoryHandlerLazyOptional[x].invalidate();
+    }
+
+    @Override
+    public int getContainerSize() {
         return 2;
     }
 
@@ -243,7 +261,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public ItemStack getStackInSlot(int slot) {
+    public ItemStack getItem(int slot) {
         if (slot == 0) {
             return input;
         } else {
@@ -252,13 +270,13 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public ItemStack decrStackSize(int slot, int decrement) {
+    public ItemStack removeItem(int slot, int decrement) {
         if (slot == 0) {
             if (input.isEmpty()) {
                 return ItemStack.EMPTY;
             } else {
                 if (decrement < input.getCount()) {
-                    ItemStack take = input.splitStack(decrement);
+                    ItemStack take = input.split(decrement);
                     if (input.getCount() <= 0) {
                         input = ItemStack.EMPTY;
                     }
@@ -274,7 +292,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
                 return ItemStack.EMPTY;
             } else {
                 if (decrement < output.getCount()) {
-                    ItemStack take = output.splitStack(decrement);
+                    ItemStack take = output.split(decrement);
                     if (output.getCount() <= 0) {
                         output = ItemStack.EMPTY;
                     }
@@ -290,12 +308,12 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public boolean isUsableByPlayer(EntityPlayer player) {
-        return world.getTileEntity(getPos()) == this && player.getDistanceSq(getPos().getX() + 0.5D, getPos().getY() + 0.5D, getPos().getZ() + 0.5D) <= 64.0D;
+    public boolean stillValid(PlayerEntity player) {
+        return this.level.getBlockEntity(getBlockPos()) == this && player.distanceToSqr(Vector3d.atCenterOf(getBlockPos())) <= 64.0D;
     }
 
     @Override
-    public boolean isItemValidForSlot(int slot, ItemStack stack) {
+    public boolean canPlaceItem(int slot, ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
         }
@@ -304,7 +322,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
                 return true;
             }
             if (AvaritiaRecipeManager.hasCompressorRecipe(stack)) {
-                if (AvaritiaRecipeManager.getCompressorRecipeFromInput(stack).getResult().isItemEqual(target_stack)) {
+                if (AvaritiaRecipeManager.getCompressorRecipeFromInput(stack).getResult().sameItem(target_stack)) {
                     return true;
                 }
             }
@@ -313,7 +331,7 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public void setInventorySlotContents(int slot, ItemStack stack) {
+    public void setItem(int slot, ItemStack stack) {
         if (slot == 0) {
             input = stack;
         } else if (slot == 1) {
@@ -322,8 +340,8 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public int[] getSlotsForFace(EnumFacing side) {
-        if (side == EnumFacing.UP) {
+    public int[] getSlotsForFace(Direction side) {
+        if (side == Direction.UP) {
             return top;
         } else {
             return sides;
@@ -331,32 +349,44 @@ public class TileNeutroniumCompressor extends TileMachineBase implements ISidedI
     }
 
     @Override
-    public boolean canInsertItem(int slot, ItemStack stack, EnumFacing side) {
-        return isItemValidForSlot(slot, stack);
+    public boolean canPlaceItemThroughFace(int slot, ItemStack stack, Direction side) {
+        return canPlaceItem(slot, stack);
     }
 
     @Override
-    public boolean canExtractItem(int slot, ItemStack stack, EnumFacing side) {
-        if (slot == 1 && side != EnumFacing.UP) {
+    public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction side) {
+        if (slot == 1 && side != Direction.UP) {
             return true;
         }
         return false;
     }
 
     @Override
-    public ItemStack removeStackFromSlot(int index) {
+    public ItemStack removeItemNoUpdate(int index) {
         return ItemStack.EMPTY;
     }
 
     //@formatter:off
-    @Override public int getInventoryStackLimit() { return 64; }
-    @Override public String getName() { return "container.neutronium_compressor"; }
+    @Override public int getMaxStackSize() { return 64; }
+    @Override public ITextComponent getName() { return new TranslationTextComponent("container.avaritia.neutronium_compressor"); }
     @Override public boolean hasCustomName() { return false; }
-    @Override public void openInventory(EntityPlayer player) { }
-    @Override public void closeInventory(EntityPlayer player) { }
-    @Override public int getField(int id) { return 0; }
-    @Override public void setField(int id, int value) { }
-    @Override public int getFieldCount() { return 0; }
-    @Override public void clear() { }
+    @Override public void startOpen(PlayerEntity player) { }
+    @Override public void stopOpen(PlayerEntity player) { }
+    @Override
+    public void clearContent() {
+        input = ItemStack.EMPTY;
+        output = ItemStack.EMPTY;
+    }
+
+    @Override
+    public ITextComponent getDisplayName() {
+        return getName();
+    }
+
+    @Nullable
+    @Override
+    public Container createMenu(int id, PlayerInventory playerInv, PlayerEntity player) {
+        return new ContainerNeutroniumCompressor(id, playerInv, this);
+    }
     //@formatter:on
 }

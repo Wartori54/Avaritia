@@ -1,88 +1,79 @@
 package morph.avaritia.item.tools;
 
-import codechicken.lib.model.ModelRegistryHelper;
-import codechicken.lib.util.TransformUtils;
 import morph.avaritia.Avaritia;
 import morph.avaritia.api.ICosmicRenderItem;
 import morph.avaritia.api.registration.IModelRegister;
-import morph.avaritia.client.render.item.CosmicItemRender;
 import morph.avaritia.entity.EntityImmortalItem;
 import morph.avaritia.handler.AvaritiaEventHandler;
 import morph.avaritia.init.AvaritiaTextures;
 import morph.avaritia.init.ModItems;
 import morph.avaritia.util.DamageSourceInfinitySword;
-import net.minecraft.client.renderer.block.model.IBakedModel;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import morph.avaritia.util.ModHelper;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.EnumRarity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.IItemTier;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.ItemSword;
+import net.minecraft.item.SwordItem;
+import net.minecraft.item.crafting.Ingredient;
 import net.minecraft.util.EntityDamageSource;
-import net.minecraft.util.EnumHand;
 import net.minecraft.world.World;
-import net.minecraftforge.client.model.ModelLoader;
-import net.minecraftforge.common.util.EnumHelper;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-public class ItemSwordInfinity extends ItemSword implements ICosmicRenderItem, IModelRegister {
+public class ItemSwordInfinity extends SwordItem implements ICosmicRenderItem, IModelRegister {
 
-    private static final ToolMaterial TOOL_MATERIAL = EnumHelper.addToolMaterial("INFINITY_SWORD", 32, 9999, 9999F, -3.0F, 200);
+//    private static final TOOL_MATERIAL = EnumHelper.addToolMaterial("INFINITY_SWORD", 32, 9999, 9999F, -3.0F, 200);
     //private IIcon cosmicMask;
     //private IIcon pommel;
 
     public ItemSwordInfinity() {
-        super(TOOL_MATERIAL);
-        setUnlocalizedName("avaritia:infinity_sword");
-        setRegistryName("infinity_sword");
-        setCreativeTab(Avaritia.tab);
+        super(ModHelper.InfinityTier.INFINITY_TIER, 0, -2.4F, new Properties().stacksTo(1).tab(Avaritia.TAB).rarity(ModItems.COSMIC_RARITY).defaultDurability(9999));
     }
 
     @Override
-    public boolean hitEntity(ItemStack stack, EntityLivingBase victim, EntityLivingBase player) {
-        if (player.world.isRemote) {
+    public boolean hurtEnemy(ItemStack stack, LivingEntity victim, LivingEntity attacker) { // TODO: check if correct
+        if (attacker.level.isClientSide()) {
             return true;
         }
-        if (victim instanceof EntityPlayer) {
-            EntityPlayer pvp = (EntityPlayer) victim;
+        if (victim instanceof PlayerEntity) {
+            PlayerEntity pvp = (PlayerEntity) victim;
             if (AvaritiaEventHandler.isInfinite(pvp)) {
-                victim.attackEntityFrom(new DamageSourceInfinitySword(player).setDamageBypassesArmor(), 4.0F);
+                victim.hurt(new DamageSourceInfinitySword(attacker).bypassArmor(), 4.0F);
                 return true;
             }
-            if (pvp.getHeldItem(EnumHand.MAIN_HAND) != null && pvp.getHeldItem(EnumHand.MAIN_HAND).getItem() == ModItems.infinity_sword && pvp.isHandActive()) {
+            if (pvp.isHolding(ModItems.infinity_sword) && pvp.isUsingItem()) {
                 return true;
             }
         }
-
-        victim.recentlyHit = 60;
-        victim.getCombatTracker().trackDamage(new DamageSourceInfinitySword(player), victim.getHealth(), victim.getHealth());
+        if (attacker instanceof PlayerEntity) {
+            victim.setLastHurtByPlayer((PlayerEntity) attacker);
+        } else {
+            victim.setLastHurtByMob(attacker);
+        }
+        victim.getCombatTracker().recordDamage(new DamageSourceInfinitySword(attacker), victim.getHealth(), victim.getHealth());
         victim.setHealth(0);
-        victim.onDeath(new EntityDamageSource("infinity", player));
+        victim.die(new EntityDamageSource("infinity", attacker));
         return true;
     }
 
     @Override
-    public boolean onLeftClickEntity(ItemStack stack, EntityPlayer player, Entity entity) {
-        if (!entity.world.isRemote && entity instanceof EntityPlayer) {
-            EntityPlayer victim = (EntityPlayer) entity;
-            if (victim.capabilities.isCreativeMode && !victim.isDead && victim.getHealth() > 0 && !AvaritiaEventHandler.isInfinite(victim)) {
-                victim.getCombatTracker().trackDamage(new DamageSourceInfinitySword(player), victim.getHealth(), victim.getHealth());
-                victim.setHealth(0);
-                victim.onDeath(new EntityDamageSource("infinity", player));
-                //TODO
-                //player.addStat(Achievements.creative_kill, 1);
-                return true;
-            }
+    public boolean onLeftClickEntity(ItemStack stack, PlayerEntity player, Entity entity) { // kill creative players
+        if (entity.level.isClientSide() || !(entity instanceof PlayerEntity)) {
+            return false;
         }
-        return false;
-    }
+        PlayerEntity victim = (PlayerEntity) entity;
+        if (victim.isCreative() && !victim.isDeadOrDying() && victim.getHealth() > 0 && !AvaritiaEventHandler.isInfinite(victim)) {
+            victim.getCombatTracker().recordDamage(new DamageSourceInfinitySword(player), victim.getHealth(), victim.getHealth());
+            victim.setHealth(0);
+            victim.die(new EntityDamageSource("infinity", player));
+            //TODO
+            //player.addStat(Achievements.creative_kill, 1);
+            return true;
+        }
 
-    @Override
-    public EnumRarity getRarity(ItemStack stack) {
-        return ModItems.COSMIC_RARITY;
+        return false;
     }
 
     @Override
@@ -91,18 +82,18 @@ public class ItemSwordInfinity extends ItemSword implements ICosmicRenderItem, I
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
-    public TextureAtlasSprite getMaskTexture(ItemStack stack, EntityLivingBase player) {
+    @OnlyIn(Dist.CLIENT)
+    public TextureAtlasSprite getMaskTexture(ItemStack stack, LivingEntity player) {
         return AvaritiaTextures.INFINITY_SWORD_MASK;
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
-    public float getMaskOpacity(ItemStack stack, EntityLivingBase player) {
+    @OnlyIn(Dist.CLIENT)
+    public float getMaskOpacity(ItemStack stack, LivingEntity player) {
         return 1.0f;
     }
 
-    //@SideOnly (Side.CLIENT)
+    //@OnlyIn(Dist.CLIENT)
     //@Override
     //public void registerIcons(IIconRegister ir) {
     //    super.registerIcons(ir);
@@ -118,7 +109,7 @@ public class ItemSwordInfinity extends ItemSword implements ICosmicRenderItem, I
     //    return super.getIcon(stack, pass);
     // }
 
-    //@SideOnly (Side.CLIENT)
+    //@OnlyIn(Dist.CLIENT)
     //@Override
     //public boolean requiresMultipleRenderPasses() {
     //    return true;
@@ -135,18 +126,20 @@ public class ItemSwordInfinity extends ItemSword implements ICosmicRenderItem, I
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
-    public boolean hasEffect(ItemStack par1ItemStack) {
+    @OnlyIn(Dist.CLIENT)
+    public boolean isFoil(ItemStack par1ItemStack) {
         return false;
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
-    public void registerModels() {
-        ModelResourceLocation sword = new ModelResourceLocation("avaritia:tools", "type=infinity_sword");
-        ModelLoader.registerItemVariants(ModItems.infinity_pickaxe, sword);
-        IBakedModel wrapped = new CosmicItemRender(TransformUtils.DEFAULT_TOOL, modelRegistry -> modelRegistry.getObject(sword));
-        ModelRegistryHelper.register(sword, wrapped);
-        ModelLoader.setCustomMeshDefinition(ModItems.infinity_sword, (ItemStack stack) -> sword);
+    @OnlyIn(Dist.CLIENT)
+    public void registerModels() { // TODO: fix this
+//        ModelResourceLocation sword = new ModelResourceLocation("avaritia:tools", "type=infinity_sword");
+//        ModelLoader.registerItemVariants(ModItems.infinity_pickaxe, sword);
+//        IBakedModel wrapped = new CosmicItemRender(TransformUtils.DEFAULT_TOOL, modelRegistry -> modelRegistry.getObject(sword));
+//        ModelRegistryHelper.register(sword, wrapped);
+//        ModelLoader.setCustomMeshDefinition(ModItems.infinity_sword, (ItemStack stack) -> sword);
     }
+
+
 }

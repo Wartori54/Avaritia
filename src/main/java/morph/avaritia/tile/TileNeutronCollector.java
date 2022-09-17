@@ -1,16 +1,24 @@
 package morph.avaritia.tile;
 
 import codechicken.lib.packet.PacketCustom;
-import codechicken.lib.util.BlockUtils;
-import codechicken.lib.util.ItemUtils;
+import morph.avaritia.container.ContainerNeutronCollector;
+import morph.avaritia.init.ModContent;
 import morph.avaritia.init.ModItems;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.block.BlockState;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.inventory.container.Container;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.EnumFacing;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.util.Direction;
+import net.minecraft.util.IIntArray;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.items.CapabilityItemHandler;
+import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.wrapper.InvWrapper;
 
 import javax.annotation.Nullable;
@@ -21,19 +29,54 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
 
     private ItemStack neutrons = ItemStack.EMPTY;
     private int progress;
+    private IIntArray dataAccess = new IIntArray() {
+        @Override
+        public int get(int id) {
+            switch (id) {
+                case 0:
+                    return TileNeutronCollector.this.getProgress();
+                case 1:
+                    return TileNeutronCollector.PRODUCTION_TICKS;
+                default:
+                    return 0;
+            }
+        }
+
+        @Override
+        public void set(int id, int value) {
+            switch (id) {
+                case 0:
+                    TileNeutronCollector.this.progress = value;
+                    break;
+                case 1: // cannot change processing time as its final
+                default:
+            }
+        }
+
+        @Override
+        public int getCount() {
+            return 2;
+        }
+    };
+
+    private final LazyOptional<IItemHandler> inventoryHandlerLazyOptional = LazyOptional.of(() -> new InvWrapper(this));
+
+    public TileNeutronCollector() {
+        super(ModContent.tileNeutronCollector);
+    }
 
     @Override
     public void doWork() {
         if (++progress >= PRODUCTION_TICKS) {
             if (neutrons.isEmpty()) {
-                neutrons = ItemUtils.copyStack(ModItems.neutron_pile, 1);
-            } else if (ItemUtils.areStacksSameType(neutrons, ModItems.neutron_pile)) {
-                if (neutrons.getCount() < 64) {
+                neutrons = new ItemStack(ModItems.neutron_pile, 1);
+            } else if (neutrons.getItem().equals(ModItems.neutron_pile)) {
+                if (neutrons.getCount() < getMaxStackSize()) {
                     neutrons.grow(1);
                 }
             }
             progress = 0;
-            markDirty();
+            setChanged();
         }
     }
 
@@ -44,7 +87,7 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
 
     @Override
     protected boolean canWork() {
-        return neutrons.isEmpty() || neutrons.getCount() < 64;
+        return neutrons.isEmpty() || neutrons.getCount() < getMaxStackSize();
     }
 
     public int getProgress() {
@@ -52,25 +95,25 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
     }
 
     @Override
-    public void readFromNBT(NBTTagCompound tag) {
-        super.readFromNBT(tag);
-        if (tag.hasKey("Neutrons")) {
-            neutrons = new ItemStack(tag.getCompoundTag("Neutrons"));
+    public void load(BlockState state, CompoundNBT tag) {
+        super.load(state, tag);
+        if (tag.contains("Neutrons")) {
+            neutrons = ItemStack.of(tag.getCompound("Neutrons"));
         }
-        progress = tag.getInteger("Progress");
+        progress = tag.getInt("Progress");
     }
 
     @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound tag) {
-        tag.setInteger("Progress", progress);
+    public CompoundNBT save(CompoundNBT tag) {
+        tag.putInt("Progress", progress);
         if (neutrons != null) {
-            NBTTagCompound produce = new NBTTagCompound();
-            neutrons.writeToNBT(produce);
-            tag.setTag("Neutrons", produce);
+            CompoundNBT produce = new CompoundNBT();
+            neutrons.save(produce);
+            tag.put("Neutrons", produce);
         } else {
-            tag.removeTag("Neutrons");
+            tag.remove("Neutrons");
         }
-        return super.writeToNBT(tag);
+        return super.save(tag);
     }
 
     @Override
@@ -83,22 +126,28 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
         progress = packet.readVarInt();
     }
 
-    @Override
-    public boolean hasCapability(Capability<?> capability, @Nullable EnumFacing facing) {
-        return capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
-    }
+//    @Override
+//    public boolean hasCapability(Capability<?> capability, @Nullable Direction facing) {
+//        return capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY || super.hasCapability(capability, facing);
+//    }
 
     @Nullable
     @Override
-    public <T> T getCapability(Capability<T> capability, @Nullable EnumFacing side) {
+    public <T> LazyOptional<T> getCapability(Capability<T> capability, @Nullable Direction side) {
         if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
-            return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(new InvWrapper(this));
+            return inventoryHandlerLazyOptional.cast();
         }
         return super.getCapability(capability, side);
     }
 
     @Override
-    public int getSizeInventory() {
+    protected void invalidateCaps() {
+        super.invalidateCaps();
+        inventoryHandlerLazyOptional.invalidate();
+    }
+
+    @Override
+    public int getContainerSize() {
         return 1;
     }
 
@@ -108,17 +157,18 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
     }
 
     @Override
-    public ItemStack getStackInSlot(int slot) {
-        return neutrons;
+    public ItemStack getItem(int slot) {
+        if (slot == 0) return neutrons;
+        return ItemStack.EMPTY;
     }
 
     @Override
-    public ItemStack decrStackSize(int slot, int decrement) {
+    public ItemStack removeItem(int slot, int decrement) {
         if (neutrons.isEmpty()) {
             return ItemStack.EMPTY;
         } else {
             if (decrement < neutrons.getCount()) {
-                ItemStack take = neutrons.splitStack(decrement);
+                ItemStack take = neutrons.split(decrement);
                 if (neutrons.getCount() <= 0) {
                     neutrons = ItemStack.EMPTY;
                 }
@@ -132,36 +182,44 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
     }
 
     @Override
-    public void openInventory(EntityPlayer player) {
+    public void startOpen(PlayerEntity player) {
     }
 
     @Override
-    public void closeInventory(EntityPlayer player) {
+    public void stopOpen(PlayerEntity player) {
     }
 
     @Override
-    public boolean isUsableByPlayer(EntityPlayer player) {
-        return world.getTileEntity(getPos()) == this && BlockUtils.isEntityInRange(getPos(), player, 64);
+    public boolean stillValid(PlayerEntity player) {
+        if (this.level.getBlockEntity(this.worldPosition) != this) {
+            return false;
+        } else {
+            return !(player.distanceToSqr((double)this.worldPosition.getX() + 0.5D,
+                    (double)this.worldPosition.getY() + 0.5D,
+                    (double)this.worldPosition.getZ() + 0.5D)
+                    > 64.0D);
+        }
     }
 
-    @Override
-    public boolean isItemValidForSlot(int slot, ItemStack stack) {
-        return false;
-    }
+//    @Override
+//    public boolean isItemValidForSlot(int slot, ItemStack stack) {
+//        return false;
+//    }
 
     @Override
-    public int getInventoryStackLimit() {
+    public int getMaxStackSize() {
         return 64;
     }
 
     @Override
-    public void setInventorySlotContents(int slot, ItemStack stack) {
+    public void setItem(int slot, ItemStack stack) {
+        if (slot != 0) return;
         neutrons = stack;
     }
 
     @Override
-    public String getName() {
-        return "container.neutron";
+    public ITextComponent getName() {
+        return new TranslationTextComponent("container.avaritia.neutron_collector");
     }
 
     @Override
@@ -170,26 +228,22 @@ public class TileNeutronCollector extends TileMachineBase implements IInventory 
     }
 
     @Override
-    public ItemStack removeStackFromSlot(int slot) {
+    public ItemStack removeItemNoUpdate(int slot) { // TODO: maybe wrong????
         return ItemStack.EMPTY;
     }
 
     @Override
-    public int getField(int id) {
-        return 0;
+    public void clearContent() {
     }
 
     @Override
-    public void setField(int id, int value) {
+    public ITextComponent getDisplayName() {
+        return getName();
     }
 
+    @Nullable
     @Override
-    public int getFieldCount() {
-        return 2;
+    public Container createMenu(int id, PlayerInventory playerInv, PlayerEntity player) {
+        return new ContainerNeutronCollector(id, playerInv, this, this.dataAccess);
     }
-
-    @Override
-    public void clear() {
-    }
-
 }

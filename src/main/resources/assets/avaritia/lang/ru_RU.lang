@@ -100,6 +100,7 @@ crafting.extreme=Экстремальное создание
 crafting.extreme.shapeless=Экстремальное бесформенное создание
 crafting.extreme_compression=Компрессор нейтрония
 tip.infinity=Бесконечный
+tip.sanic=SANIC
 death.attack.infinity=%1$s был уничтожен %2$s
 death.attack.infinity.item=%1$s был уничтожен %2$s
 death.attack.infinity.1=%1$s искромсал %2$s

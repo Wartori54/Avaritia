@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "top": "avaritia:blocks/machine/compressor/top",
+    "side": "avaritia:blocks/machine/compressor/side",
+    "front": "avaritia:blocks/machine/compressor/active"
+  }
+}

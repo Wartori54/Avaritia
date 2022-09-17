@@ -2,31 +2,44 @@ package morph.avaritia.init;
 
 import morph.avaritia.Avaritia;
 import morph.avaritia.api.registration.IModelRegister;
-import morph.avaritia.handler.ConfigHandler;
 import morph.avaritia.item.*;
 import morph.avaritia.item.tools.*;
-import net.minecraft.init.MobEffects;
-import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.item.EnumRarity;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemFood;
-import net.minecraft.item.ItemStack;
-import net.minecraft.potion.PotionEffect;
+import net.minecraft.block.Block;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.*;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.common.util.EnumHelper;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraftforge.event.RegistryEvent;
 
+import net.minecraftforge.registries.ObjectHolder;
+
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
  * Created by covers1624 on 11/04/2017.
  */
+
+@ObjectHolder(Avaritia.MOD_ID)
 public class ModItems {
 
-    public static EnumRarity COSMIC_RARITY = EnumHelper.addRarity("COSMIC", TextFormatting.RED, "Cosmic");
+    public static Rarity COSMIC_RARITY = Rarity.create("COSMIC", TextFormatting.RED);
 
-    public static ItemResource resource;
+//    public static ItemResource resource;
+
+    //@formatter:off
+    // the old avaritia:resource
+    @ObjectHolder("diamond_lattice") public static Item diamond_lattice;
+    @ObjectHolder("crystal_matrix_ingot") public static Item crystal_matrix_ingot;
+    @ObjectHolder("neutron_pile") public static Item neutron_pile;
+    @ObjectHolder("neutron_nugget") public static Item neutron_nugget;
+    @ObjectHolder("neutronium_ingot") public static Item neutron_ingot; // TODO check if old ingots get converted to new ones
+    @ObjectHolder("infinity_catalyst") public static Item infinity_catalyst;
+    @ObjectHolder("infinity_ingot") public static Item infinity_ingot;
+    @ObjectHolder("record_fragment") public static Item record_fragment;
+    //@formatter:on
 
     /**
      * 0 = Iron,
@@ -43,153 +56,145 @@ public class ModItems {
      * 11 = Emerald
      * 12 = Fluxed
      */
+    @ObjectHolder("singularity")
     public static ItemSingularity singularity;
 
-    public static ItemSwordInfinity infinity_sword;
-    public static ItemBowInfinity infinity_bow;
-    public static ItemPickaxeInfinity infinity_pickaxe;
-    public static ItemShovelInfinity infinity_shovel;
-    public static ItemAxeInfinity infinity_axe;
-    public static ItemHoeInfinity infinity_hoe;
+    @ObjectHolder("infinity_sword") public static ItemSwordInfinity infinity_sword;
+    @ObjectHolder("infinity_bow") public static ItemBowInfinity infinity_bow;
+    @ObjectHolder("infinity_pickaxe") public static ItemPickaxeInfinity infinity_pickaxe;
+    @ObjectHolder("infinity_shovel") public static ItemShovelInfinity infinity_shovel;
+    @ObjectHolder("infinity_axe") public static ItemAxeInfinity infinity_axe;
+    @ObjectHolder("infinity_hoe") public static ItemHoeInfinity infinity_hoe;
 
-    public static ItemArmorInfinity infinity_helmet;
-    public static ItemArmorInfinity infinity_chestplate;
-    public static ItemArmorInfinity infinity_pants;
-    public static ItemArmorInfinity infinity_boots;
+    @ObjectHolder("infinity_helmet") public static ItemArmorInfinity infinity_helmet;
+    @ObjectHolder("infinity_chestplate") public static ItemArmorInfinity infinity_chestplate;
+    @ObjectHolder("infinity_pants") public static ItemArmorInfinity infinity_pants;
+    @ObjectHolder("infinity_pants") public static ItemArmorInfinity infinity_boots;
 
-    public static ItemSwordSkulls skull_sword;
+    @ObjectHolder("skullfire_sword") public static ItemSwordSkulls skull_sword;
 
-    public static ItemEndestPearl endest_pearl;
-    public static ItemFood ultimate_stew;
-    public static ItemFood cosmic_meatballs;
+    @ObjectHolder("endest_pearl") public static ItemEndestPearl endest_pearl;
 
-    public static ItemFracturedOre fractured_ore;
+    @ObjectHolder("ultimate_stew") public static Item ultimate_stew;
+    @ObjectHolder("cosmic_meatballs") public static Item cosmic_meatballs;
 
-    public static ItemMatterCluster matter_cluster;
+    public static Food ultimate_stew_food = new Food.Builder()
+            .nutrition(20)
+            .saturationMod(20)
+            .effect(() -> new EffectInstance(Effects.REGENERATION, 300, 1), 1F)
+            .build();
+    public static Food cosmic_meatballs_food = new Food.Builder()
+            .nutrition(20)
+            .saturationMod(20)
+            .effect(() -> new EffectInstance(Effects.DAMAGE_BOOST, 300, 1), 1F)
+            .build();
+//    public static ItemFracturedOre fractured_ore;
 
-    public static ItemStack ironSingularity;
-    public static ItemStack goldSingularity;
-    public static ItemStack lapisSingularity;
-    public static ItemStack redstoneSingularity;
-    public static ItemStack quartzSingularity;
-    public static ItemStack copperSingularity;
-    public static ItemStack tinSingularity;
-    public static ItemStack leadSingularity;
-    public static ItemStack silverSingularity;
-    public static ItemStack nickelSingularity;
-    public static ItemStack diamondSingularity;
-    public static ItemStack emeraldSingularity;
-    public static ItemStack fluxedSingularity;
-    public static ItemStack platinumSingularity;
-    public static ItemStack iridiumSingularity;
+    @ObjectHolder("matter_cluster") public static ItemMatterCluster matter_cluster;
 
-    public static ItemStack diamond_lattice;
-    public static ItemStack crystal_matrix_ingot;
-    public static ItemStack neutron_pile;
-    public static ItemStack neutron_nugget;
-    public static ItemStack neutronium_ingot;
-    public static ItemStack infinity_catalyst;
-    public static ItemStack infinity_ingot;
-    public static ItemStack record_fragment;
+//    public static ItemStack ironSingularity;
+//    public static ItemStack goldSingularity;
+//    public static ItemStack lapisSingularity;
+//    public static ItemStack redstoneSingularity;
+//    public static ItemStack quartzSingularity;
+//    public static ItemStack copperSingularity;
+//    public static ItemStack tinSingularity;
+//    public static ItemStack leadSingularity;
+//    public static ItemStack silverSingularity;
+//    public static ItemStack nickelSingularity;
+//    public static ItemStack diamondSingularity;
+//    public static ItemStack emeraldSingularity;
+//    public static ItemStack fluxedSingularity;
+//    public static ItemStack platinumSingularity;
+//    public static ItemStack iridiumSingularity;
 
-    public static void init() {
 
-        resource = registerItem(new ItemResource(Avaritia.tab, "resource"));
-        //0
-        diamond_lattice = resource.registerItem("diamond_lattice", EnumRarity.UNCOMMON);
-        //1
-        crystal_matrix_ingot = resource.registerItem("crystal_matrix_ingot", EnumRarity.RARE);
-        //2
-        neutron_pile = resource.registerItem("neutron_pile", EnumRarity.UNCOMMON);
-        //3
-        neutron_nugget = resource.registerItem("neutron_nugget", EnumRarity.UNCOMMON);
-        //4
-        neutronium_ingot = resource.registerItem("neutronium_ingot", EnumRarity.RARE);
-        //5
-        infinity_catalyst = resource.registerItem("infinity_catalyst", EnumRarity.EPIC);
-        //6
-        infinity_ingot = resource.registerItem("infinity_ingot", COSMIC_RARITY);
-        //7
-        record_fragment = resource.registerItem("record_fragment", COSMIC_RARITY);
+    public static void init(RegistryEvent.Register<Item> event) {
+        ItemRegistry registry = new ItemRegistry(event);
+        // resources
+        registry.registerItemResource("diamond_lattice", Rarity.UNCOMMON);
+        registry.registerItemResource("crystal_matrix_ingot", Rarity.RARE);
+        registry.registerItemResource("neutron_pile", Rarity.UNCOMMON);
+        registry.registerItemResource("neutron_nugget", Rarity.UNCOMMON);
+        registry.registerItemResource("neutronium_ingot", Rarity.RARE);
+        registry.registerItemResource("infinity_catalyst", Rarity.EPIC);
+        registry.registerItemResource("infinity_ingot", COSMIC_RARITY);
+        registry.registerItemResource("record_fragment", Rarity.UNCOMMON);
 
-        singularity = registerItem(new ItemSingularity(Avaritia.tab, "singularity"));
-        ironSingularity = singularity.registerItem("iron");
-        goldSingularity = singularity.registerItem("gold");
-        lapisSingularity = singularity.registerItem("lapis");
-        redstoneSingularity = singularity.registerItem("redstone");
-        quartzSingularity = singularity.registerItem("quartz");
-        copperSingularity = singularity.registerItem("copper");
-        tinSingularity = singularity.registerItem("tin");
-        leadSingularity = singularity.registerItem("lead");
-        silverSingularity = singularity.registerItem("silver");
-        nickelSingularity = singularity.registerItem("nickel");
-        diamondSingularity = singularity.registerItem("diamond");
-        emeraldSingularity = singularity.registerItem("emerald");
-        fluxedSingularity = singularity.registerItem("fluxed");
-        platinumSingularity = singularity.registerItem("platinum");
-        iridiumSingularity = singularity.registerItem("iridium");
+        // block items
+        registry.registerBlockItem(ModBlocks.compressed_crafting_table);
+        registry.registerBlockItem(ModBlocks.double_compressed_craftingTable);
+        registry.registerBlockItem(ModBlocks.extreme_crafting_table);
+        registry.registerBlockItem(ModBlocks.neutron_block);
+        registry.registerBlockItem(ModBlocks.infinity_block);
+        registry.registerBlockItem(ModBlocks.crystal_matrix);
+        registry.registerBlockItem(ModBlocks.neutron_collector);
+        registry.registerBlockItem(ModBlocks.neutronium_compressor);
 
-        infinity_sword = registerItem(new ItemSwordInfinity());
+        // TODO: singularity registration
+        registry.registerItem(new ItemSingularity(), "singularity");
 
-        infinity_bow = registerItem(new ItemBowInfinity());
+        registry.registerItem(new ItemSwordInfinity(), "infinity_sword");
 
-        infinity_pickaxe = registerItem(new ItemPickaxeInfinity());
+        registry.registerItem(new ItemBowInfinity(), "infinity_bow");
 
-        infinity_shovel = registerItem(new ItemShovelInfinity());
+        registry.registerItem(new ItemPickaxeInfinity(), "infinity_pickaxe");
 
-        infinity_axe = registerItem(new ItemAxeInfinity());
+        registry.registerItem(new ItemShovelInfinity(), "infinity_shovel");
 
-        infinity_hoe = registerItem(new ItemHoeInfinity());
+        registry.registerItem(new ItemAxeInfinity(), "infinity_axe");
 
-        infinity_helmet = new ItemArmorInfinity(EntityEquipmentSlot.HEAD);
-        infinity_helmet.setUnlocalizedName("avaritia:infinity_helmet");
-        registerItem(infinity_helmet.setRegistryName("infinity_helmet"));
+        registry.registerItem(new ItemHoeInfinity(), "infinity_hoe");
 
-        infinity_chestplate = new ItemArmorInfinity(EntityEquipmentSlot.CHEST);
-        infinity_chestplate.setUnlocalizedName("avaritia:infinity_chestplate");
-        registerItem(infinity_chestplate.setRegistryName("infinity_chestplate"));
+        registry.registerItem(new ItemSwordSkulls(), "skullfire_sword");
 
-        infinity_pants = new ItemArmorInfinity(EntityEquipmentSlot.LEGS);
-        infinity_pants.setUnlocalizedName("avaritia:infinity_pants");
-        registerItem(infinity_pants.setRegistryName("infinity_pants"));
+        registry.registerItem(new ItemArmorInfinity(EquipmentSlotType.HEAD), "infinity_helmet");
+        registry.registerItem(new ItemArmorInfinity(EquipmentSlotType.CHEST), "infinity_chestplate");
+        registry.registerItem(new ItemArmorInfinity(EquipmentSlotType.LEGS), "infinity_pants");
+        registry.registerItem(new ItemArmorInfinity(EquipmentSlotType.FEET), "infinity_boots");
 
-        infinity_boots = new ItemArmorInfinity(EntityEquipmentSlot.FEET);
-        infinity_boots.setUnlocalizedName("avaritia:infinity_boots");
-        registerItem(infinity_boots.setRegistryName("infinity_boots"));
+        registry.registerItem(new ItemEndestPearl(), "endest_pearl");
 
-        skull_sword = registerItem(new ItemSwordSkulls());
+        registry.registerItem(new ItemMatterCluster(), "matter_cluster");
 
-        endest_pearl = registerItem(new ItemEndestPearl());
+        registry.registerItem(new Item(new Item.Properties().tab(Avaritia.TAB).food(ultimate_stew_food)), "ultimate_stew");
+        registry.registerItem(new Item(new Item.Properties().tab(Avaritia.TAB).food(cosmic_meatballs_food)), "cosmic_meatballs");
 
-        ultimate_stew = new ItemFood(20, 20, false);
-        registerItem(ultimate_stew.setRegistryName("ultimate_stew"));
-        ultimate_stew.setPotionEffect(new PotionEffect(MobEffects.REGENERATION, 300, 1), 1.0F).setUnlocalizedName("avaritia:ultimate_stew").setCreativeTab(Avaritia.tab);
 
-        cosmic_meatballs = new ItemFood(20, 20, false);
-        registerItem(cosmic_meatballs.setRegistryName("cosmic_meatballs"));
-        cosmic_meatballs.setPotionEffect(new PotionEffect(MobEffects.STRENGTH, 300, 1), 1.0F).setUnlocalizedName("avaritia:cosmic_meatballs").setCreativeTab(Avaritia.tab);
+    }
 
-        if (ConfigHandler.fracturedOres) {
-            fractured_ore = registerItem(new ItemFracturedOre());
-            ItemFracturedOre.parseOreDictionary();
+    private static class ItemRegistry {
+        private final RegistryEvent.Register<Item> event;
+        public ItemRegistry(RegistryEvent.Register<Item> event) {
+            this.event = event;
+        }
+        public void registerItemResource(String name, Rarity rarity) {
+            Item item = new ItemResource(new ResourceLocation(Avaritia.MOD_ID, name), rarity);
+            this.event.getRegistry().register(item);
+            Avaritia.proxy.addModelRegister((IModelRegister) item);
         }
 
-        matter_cluster = registerItem(new ItemMatterCluster());
-    }
-
-    public static <V extends Item> V registerItem(V item) {
-        registerImpl(item, ForgeRegistries.ITEMS::register);
-        return item;
-    }
-
-    public static <V extends IForgeRegistryEntry<V>> V registerImpl(V registryObject, Consumer<V> registerCallback) {
-        registerCallback.accept(registryObject);
-
-        if (registryObject instanceof IModelRegister) {
-            Avaritia.proxy.addModelRegister((IModelRegister) registryObject);
+        public void registerItem(Item item, String name) {
+            this.event.getRegistry().register(item.setRegistryName(new ResourceLocation(Avaritia.MOD_ID, name)));
+            if (item instanceof IModelRegister) {
+                Avaritia.proxy.addModelRegister((IModelRegister) item);
+            }
         }
 
-        return registryObject;
+        public void registerBlockItem(Block block) {
+            this.event.getRegistry().register(new BlockItem(block, new Item.Properties().tab(Avaritia.TAB))
+                    .setRegistryName(Objects.requireNonNull(block.getRegistryName())));
+        }
     }
+
+//    public static <V extends IForgeRegistryEntry<V>> V registerImpl(V registryObject, Consumer<V> registerCallback) {
+//        registerCallback.accept(registryObject);
+//
+//        if (registryObject instanceof IModelRegister) {
+//            Avaritia.proxy.addModelRegister((IModelRegister) registryObject);
+//        }
+//
+//        return registryObject;
+//    }
 
 }

@@ -1,9 +1,11 @@
 package morph.avaritia.init;
 
-import codechicken.lib.texture.TextureUtils.IIconRegister;
+import codechicken.lib.texture.AtlasRegistrar;
+import codechicken.lib.texture.IIconRegister;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.util.ResourceLocation;
+
+import java.util.function.Consumer;
 
 /**
  * Created by covers1624 on 17/04/2017.
@@ -11,39 +13,39 @@ import net.minecraft.util.ResourceLocation;
 public class AvaritiaTextures implements IIconRegister {
 
     @Override
-    public void registerIcons(TextureMap textureMap) {
+    public void registerIcons(AtlasRegistrar textureMap) {
         map = textureMap;
 
         //@formatter:off
-        HALO = register(ITEMS_ + "halo");
-        HALO_NOISE = register(ITEMS_ + "halo_noise");
+        register(ITEMS_ + "halo", tex -> HALO = tex);
+        register(ITEMS_ + "halo_noise", tex -> HALO_NOISE = tex);
 
-        INFINITY_ARMOR_MASK = register(MODELS_ + "infinity_armor_mask");
-        INFINITY_ARMOR_MASK_INV = register(MODELS_ + "infinity_armor_mask_inv");
-        INFINITY_ARMOR_MASK_WINGS = register(MODELS_ + "infinity_armor_mask_wings");
+        register(MODELS_ + "infinity_armor_mask", tex -> INFINITY_ARMOR_MASK = tex);
+        register(MODELS_ + "infinity_armor_mask_inv", tex -> INFINITY_ARMOR_MASK_INV = tex);
+        register(MODELS_ + "infinity_armor_mask_wings", tex -> INFINITY_ARMOR_MASK_WINGS = tex);
 
-        COSMIC_0 = register(SHADER_ + "cosmic_0");
-        COSMIC_1 = register(SHADER_ + "cosmic_1");
-        COSMIC_2 = register(SHADER_ + "cosmic_2");
-        COSMIC_3 = register(SHADER_ + "cosmic_3");
-        COSMIC_4 = register(SHADER_ + "cosmic_4");
-        COSMIC_5 = register(SHADER_ + "cosmic_5");
-        COSMIC_6 = register(SHADER_ + "cosmic_6");
-        COSMIC_7 = register(SHADER_ + "cosmic_7");
-        COSMIC_8 = register(SHADER_ + "cosmic_8");
-        COSMIC_9 = register(SHADER_ + "cosmic_9");
+        register(SHADER_ + "cosmic_0", tex -> COSMIC_0 = tex);
+        register(SHADER_ + "cosmic_1", tex -> COSMIC_1 = tex);
+        register(SHADER_ + "cosmic_2", tex -> COSMIC_2 = tex);
+        register(SHADER_ + "cosmic_3", tex -> COSMIC_3 = tex);
+        register(SHADER_ + "cosmic_4", tex -> COSMIC_4 = tex);
+        register(SHADER_ + "cosmic_5", tex -> COSMIC_5 = tex);
+        register(SHADER_ + "cosmic_6", tex -> COSMIC_6 = tex);
+        register(SHADER_ + "cosmic_7", tex -> COSMIC_7 = tex);
+        register(SHADER_ + "cosmic_8", tex -> COSMIC_8 = tex);
+        register(SHADER_ + "cosmic_9", tex -> COSMIC_9 = tex);
 
-        INFINITY_SWORD_MASK   = register(TOOLS_ + "infinity_sword/mask");
+        register(TOOLS_ + "infinity_sword/mask", tex -> INFINITY_SWORD_MASK = tex);
 
-        INFINITY_BOW_IDLE = register(TOOLS_ + "infinity_bow/idle");
-        INFINITY_BOW_PULL_0 = register(TOOLS_ + "infinity_bow/pull_0");
-        INFINITY_BOW_PULL_1 = register(TOOLS_ + "infinity_bow/pull_1");
-        INFINITY_BOW_PULL_2 = register(TOOLS_ + "infinity_bow/pull_2");
+        register(TOOLS_ + "infinity_bow/idle", tex -> INFINITY_BOW_IDLE = tex);
+        register(TOOLS_ + "infinity_bow/pull_0", tex -> INFINITY_BOW_PULL_0 = tex);
+        register(TOOLS_ + "infinity_bow/pull_1", tex -> INFINITY_BOW_PULL_1 = tex);
+        register(TOOLS_ + "infinity_bow/pull_2", tex -> INFINITY_BOW_PULL_2 = tex);
 
-        INFINITY_BOW_IDLE_MASK = register(TOOLS_ + "infinity_bow/idle_mask");
-        INFINITY_BOW_PULL_0_MASK = register(TOOLS_ + "infinity_bow/pull_0_mask");
-        INFINITY_BOW_PULL_1_MASK = register(TOOLS_ + "infinity_bow/pull_1_mask");
-        INFINITY_BOW_PULL_2_MASK = register(TOOLS_ + "infinity_bow/pull_2_mask");
+        register(TOOLS_ + "infinity_bow/idle_mask", tex -> INFINITY_BOW_IDLE_MASK = tex);
+        register(TOOLS_ + "infinity_bow/pull_0_mask", tex -> INFINITY_BOW_PULL_0_MASK = tex);
+        register(TOOLS_ + "infinity_bow/pull_1_mask", tex -> INFINITY_BOW_PULL_1_MASK = tex);
+        register(TOOLS_ + "infinity_bow/pull_2_mask", tex -> INFINITY_BOW_PULL_2_MASK = tex);
 
 
         INFINITY_BOW_PULL = new TextureAtlasSprite[] {
@@ -76,13 +78,12 @@ public class AvaritiaTextures implements IIconRegister {
     }
 
     // Bouncer to make the class readable.
-    private static TextureAtlasSprite register(String sprite) {
-
-        return map.registerSprite(new ResourceLocation(sprite));
+    private static void register(String sprite, Consumer<TextureAtlasSprite> consumer) {
+        map.registerSprite(new ResourceLocation(sprite), consumer);
     }
 
     //Assign the TextureMap to a file to make things even more readable!.
-    private static TextureMap map;
+    private static AtlasRegistrar map;
 
     private static final String ITEMS_ = "avaritia:items/";
     private static final String MODELS_ = "avaritia:models/";

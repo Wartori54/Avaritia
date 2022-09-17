@@ -12,47 +12,56 @@ import com.google.common.collect.Sets;
 import morph.avaritia.handler.AvaritiaEventHandler;
 import morph.avaritia.init.ModItems;
 import morph.avaritia.item.ItemMatterCluster;
+import morph.avaritia.item.tools.ItemAxeInfinity;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BlockEvent.BreakEvent;
-import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.*;
 import java.util.Map.Entry;
 
 public class ToolHelper {
 
-    public static Material[] materialsPick = new Material[] { Material.ROCK, Material.IRON, Material.ICE, Material.GLASS, Material.PISTON, Material.ANVIL };
-    public static Material[] materialsShovel = new Material[] { Material.GRASS, Material.GROUND, Material.SAND, Material.SNOW, Material.CRAFTED_SNOW, Material.CLAY };
-    public static Set<Material> materialsAxe = Sets.newHashSet(Material.CORAL, Material.LEAVES, Material.PLANTS, Material.WOOD, Material.VINE);
+    public static Material[] materialsPick = new Material[] { Material.STONE, Material.METAL, Material.ICE,
+            Material.GLASS, Material.PISTON, Material.HEAVY_METAL };
+    public static Material[] materialsShovel = new Material[] { Material.GRASS, Material.DIRT, Material.SAND,
+            Material.SNOW, Material.TOP_SNOW, Material.CLAY };
 
-    public static void aoeBlocks(EntityPlayer player, ItemStack stack, World world, BlockPos origin, BlockPos min, BlockPos max, Block target, Set<Material> validMaterials, boolean filterTrash) {
 
-        AvaritiaEventHandler.enableItemCapture();
+    public static void aoeBlocks(PlayerEntity player, ItemStack stack, World world, BlockPos origin, BlockPos min, BlockPos max, Block target, Set<Material> validMaterials, boolean filterTrash) {
+
+        if (world.isClientSide()) return;
+//        AvaritiaEventHandler.enableItemCapture();
+        if (stack.getItem() instanceof ItemAxeInfinity)
+            ItemAxeInfinity.setRuining(stack, true);
+
 
         for (int lx = min.getX(); lx < max.getX(); lx++) {
             for (int ly = min.getY(); ly < max.getY(); ly++) {
                 for (int lz = min.getZ(); lz < max.getZ(); lz++) {
-                    BlockPos pos = origin.add(lx, ly, lz);
+                    BlockPos pos = origin.offset(lx, ly, lz);
                     removeBlockWithDrops(player, stack, world, pos, target, validMaterials);
                 }
             }
         }
 
-        AvaritiaEventHandler.stopItemCapture();
-        Set<ItemStack> drops = AvaritiaEventHandler.getCapturedDrops();
+//        AvaritiaEventHandler.stopItemCapture();
+//        Set<ItemStack> drops = AvaritiaEventHandler.getCapturedDrops();
+        if (stack.getItem() instanceof ItemAxeInfinity)
+            ItemAxeInfinity.setRuining(stack, false);
+        List<ItemStack> drops = MatterClusterModifier.flush(stack);
         if (filterTrash) {
             drops = removeTrash(stack, drops);
         }
-        if (!world.isRemote) {
+        if (!world.isClientSide()) {
             List<ItemStack> clusters = ItemMatterCluster.makeClusters(drops);
             for (ItemStack cluster : clusters) {
                 ItemUtils.dropItem(world, origin, cluster);
@@ -61,41 +70,42 @@ public class ToolHelper {
 
     }
 
-    public static void removeBlockWithDrops(EntityPlayer player, ItemStack stack, World world, BlockPos pos, Block target, Set<Material> validMaterials) {
-        if (!world.isBlockLoaded(pos)) {
+    public static void removeBlockWithDrops(PlayerEntity player, ItemStack stack, World world, BlockPos pos, Block target, Set<Material> validMaterials) {
+        if (!world.isLoaded(pos)) {
             return;
         }
-        IBlockState state = world.getBlockState(pos);
+        BlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
-        if (!world.isRemote) {
+        if (!world.isClientSide()) {
             if ((target != null && target != state.getBlock()) || block.isAir(state, world, pos)) {
                 return;
             }
             Material material = state.getMaterial();
-            if (block == Blocks.GRASS && stack.getItem() == ModItems.infinity_axe) {
-                world.setBlockState(pos, Blocks.DIRT.getDefaultState());
+            if (stack.getItem() == ModItems.infinity_axe && ItemAxeInfinity.axeEditBlocks.containsKey(block)) {
+                world.setBlock(pos, ItemAxeInfinity.axeEditBlocks.get(block).defaultBlockState(), 3); // 3 means Block.UPDATE_ALL
+                return;
             }
-            if (!block.canHarvestBlock(world, pos, player) || !validMaterials.contains(material)) {
+            if (!block.canHarvestBlock(world.getBlockState(pos), world, pos, player) || !validMaterials.contains(material)) {
                 return;
             }
             BreakEvent event = new BreakEvent(world, pos, state, player);
             MinecraftForge.EVENT_BUS.post(event);
             if (!event.isCanceled()) {
-                if (!player.capabilities.isCreativeMode) {
-                    TileEntity tile = world.getTileEntity(pos);
-                    block.onBlockHarvested(world, pos, state, player);
-                    if (block.removedByPlayer(state, world, pos, player, true)) {
-                        block.onBlockDestroyedByPlayer(world, pos, state);
-                        block.harvestBlock(world, player, pos, state, tile, stack);
+                if (!player.isCreative()) {
+                    TileEntity tile = world.getBlockEntity(pos);
+                    block.playerWillDestroy(world, pos, state, player);
+                    if (block.removedByPlayer(state, world, pos, player, true, state.getFluidState())) {
+                        world.removeBlock(pos, false);
+                        block.playerDestroy(world, player, pos, state, tile, stack);
                     }
                 } else {
-                    world.setBlockToAir(pos);
+                    world.removeBlock(pos, false);
                 }
             }
         }
     }
 
-    public static Set<ItemStack> removeTrash(ItemStack holdingStack, Set<ItemStack> drops) {
+    public static List<ItemStack> removeTrash(ItemStack holdingStack, List<ItemStack> drops) {
         Set<ItemStack> trashItems = new HashSet<>();
         for (ItemStack drop : drops) {
             if (isTrash(holdingStack, drop)) {
@@ -108,19 +118,10 @@ public class ToolHelper {
     }
 
     private static boolean isTrash(ItemStack holdingStack, ItemStack suspect) {
-        boolean isTrash = false;
-        for (int id : OreDictionary.getOreIDs(suspect)) {
-            for (String ore : AvaritiaEventHandler.defaultTrashOres) {
-                if (OreDictionary.getOreName(id).equals(ore)) {
-                    return true;
-                }
-            }
-        }
-
-        return isTrash;
+        return AvaritiaEventHandler.defaultTrashOres.contains(suspect.getItem().getRegistryName());
     }
 
-    public static List<ItemStack> collateDropList(Set<ItemStack> input) {
+    public static List<ItemStack> collateDropList(List<ItemStack> input) {
         return collateMatterClusterContents(collateMatterCluster(input));
     }
 
@@ -132,7 +133,7 @@ public class ToolHelper {
             ItemStackWrapper wrap = e.getKey();
 
             int size = wrap.stack.getMaxStackSize();
-            int fullstacks = (int) Math.floor(count / size);
+            int fullstacks = (int) Math.floor((float) count / size);
 
             for (int i = 0; i < fullstacks; i++) {
                 count -= size;
@@ -151,7 +152,7 @@ public class ToolHelper {
         return collated;
     }
 
-    public static Map<ItemStackWrapper, Integer> collateMatterCluster(Set<ItemStack> input) {
+    public static Map<ItemStackWrapper, Integer> collateMatterCluster(List<ItemStack> input) {
         Map<ItemStackWrapper, Integer> counts = new HashMap<>();
 
         if (input != null) {

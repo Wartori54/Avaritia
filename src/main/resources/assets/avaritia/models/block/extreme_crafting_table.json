@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "avaritia:blocks/crafting/extreme_top",
+    "north": "avaritia:blocks/crafting/extreme_side",
+    "south": "avaritia:blocks/crafting/extreme_side",
+    "east": "avaritia:blocks/crafting/extreme_side",
+    "west": "avaritia:blocks/crafting/extreme_side",
+    "up": "avaritia:blocks/crafting/extreme_top",
+    "down": "avaritia:blocks/crafting/extreme_top"
+  }
+}

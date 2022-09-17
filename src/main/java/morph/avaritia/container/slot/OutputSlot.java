@@ -1,7 +1,7 @@
 package morph.avaritia.container.slot;
 
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.Slot;
+import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
 
 import javax.annotation.Nullable;
@@ -16,7 +16,7 @@ public class OutputSlot extends Slot {
     }
 
     @Override
-    public boolean isItemValid(@Nullable ItemStack stack) {
+    public boolean mayPlace(@Nullable ItemStack stack) {
         return false;
     }
 }

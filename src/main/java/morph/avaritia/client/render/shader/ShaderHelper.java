@@ -8,9 +8,10 @@
 
 package morph.avaritia.client.render.shader;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import morph.avaritia.util.Lumberjack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderHelper;
 import org.apache.logging.log4j.Level;
 import org.lwjgl.opengl.ARBFragmentShader;
 import org.lwjgl.opengl.ARBShaderObjects;
@@ -20,6 +21,7 @@ import org.lwjgl.opengl.GL11;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public final class ShaderHelper {
 
@@ -46,9 +48,9 @@ public final class ShaderHelper {
 
         if (shader != 0) {
             int time = ARBShaderObjects.glGetUniformLocationARB(shader, "time");
-            Minecraft mc = Minecraft.getMinecraft();
-            if (mc.player != null && mc.player.world != null) {
-                ARBShaderObjects.glUniform1iARB(time, (int) (mc.player.world.getWorldTime() % Integer.MAX_VALUE));
+            Minecraft mc = Minecraft.getInstance();
+            if (mc.player != null && mc.player.level != null) {
+                ARBShaderObjects.glUniform1iARB(time, (int) (mc.player.level.getGameTime() % Integer.MAX_VALUE));
             }
 
             if (callback != null) {
@@ -66,7 +68,7 @@ public final class ShaderHelper {
     }
 
     public static boolean useShaders() {
-        return OpenGlHelper.shadersSupported;
+        return true; //RenderSystem.shadersSupported; TODO: fix this
     }
 
     // Most of the code taken from the LWJGL wiki
@@ -147,7 +149,7 @@ public final class ShaderHelper {
         }
 
         try {
-            reader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
             Exception innerExc = null;
             try {

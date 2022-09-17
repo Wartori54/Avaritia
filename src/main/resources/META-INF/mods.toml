@@ -1,0 +1,31 @@
+modLoader="javafml"
+loaderVersion="${lang_version}"
+license="MIT"
+[[mods]]
+    modId="avaritia"
+    version="4.0.0"
+    displayName="Avaritia"
+    logoFile="examplemod.png"
+    credits=""
+    authors="people"
+    #displayTest="MATCH_VERSION" # MATCH_VERSION is the default if nothing is specified (#optional)
+
+    description='''
+        A mod to end all mods
+    '''
+[[dependencies.avaritia]]
+    modId="forge"
+    mandatory=true
+    versionRange="[${forge_version},)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.avaritia]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[${mc_version},)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.avaritia]]
+    modId="codechickenlib"
+    mandatory=true
+    versionRange="${ccl_version}"

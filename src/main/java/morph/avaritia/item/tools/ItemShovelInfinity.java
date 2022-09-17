@@ -2,40 +2,38 @@ package morph.avaritia.item.tools;
 
 import codechicken.lib.raytracer.RayTracer;
 import morph.avaritia.Avaritia;
+import morph.avaritia.api.InfinityItem;
 import morph.avaritia.entity.EntityImmortalItem;
 import morph.avaritia.init.ModItems;
+import morph.avaritia.util.ModHelper;
 import morph.avaritia.util.ToolHelper;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.material.Material;
-import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.EnumRarity;
-import net.minecraft.item.ItemSpade;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.Rarity;
+import net.minecraft.item.ShovelItem;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumFacing.Axis;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Direction;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.world.World;
-import net.minecraftforge.common.util.EnumHelper;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import net.minecraftforge.common.ToolType;
 
-public class ItemShovelInfinity extends ItemSpade {
-
-    private static final ToolMaterial TOOL_MATERIAL = EnumHelper.addToolMaterial("INFINITY_SHOVEL", 32, 9999, 9999F, 7.0F, 200);
+public class ItemShovelInfinity extends ShovelItem  implements InfinityItem {
 
     //private IIcon destroyer;
 
     public ItemShovelInfinity() {
-        super(TOOL_MATERIAL);
-        setUnlocalizedName("avaritia:infinity_shovel");
-        setRegistryName("infinity_shovel");
-        setCreativeTab(Avaritia.tab);
+        super(ModHelper.InfinityTier.INFINITY_TIER, 1.5F, -3.0F, new Properties().stacksTo(1).tab(Avaritia.TAB).rarity(ModItems.COSMIC_RARITY).defaultDurability(9999));
     }
 
     @Override
@@ -44,18 +42,13 @@ public class ItemShovelInfinity extends ItemSpade {
     }
 
     @Override
-    public EnumRarity getRarity(ItemStack stack) {
-        return ModItems.COSMIC_RARITY;
-    }
-
-    @Override
-    public float getDestroySpeed(ItemStack stack, IBlockState state) {
-        if (stack.getTagCompound() != null && stack.getTagCompound().getBoolean("destroyer")) {
+    public float getDestroySpeed(ItemStack stack, BlockState state) {
+        if (stack.getTag() != null && stack.getTag().getBoolean("destroyer")) {
             return 5.0F;
         }
-        for (String type : getToolClasses(stack)) {
-            if (state.getBlock().isToolEffective(type, state)) {
-                return efficiency;
+        for (ToolType type : getToolTypes(stack)) {
+            if (state.getBlock().isToolEffective(state, type)) {
+                return speed;
             }
         }
         return Math.max(super.getDestroySpeed(stack, state), 1.0F);
@@ -84,37 +77,50 @@ public class ItemShovelInfinity extends ItemSpade {
     //}
 
     @Override
-    public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
-        ItemStack stack = player.getHeldItem(hand);
-        if (player.isSneaking()) {
-            NBTTagCompound tags = stack.getTagCompound();
+    public ActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (player.isShiftKeyDown()) {
+            CompoundNBT tags = stack.getTag();
             if (tags == null) {
-                tags = new NBTTagCompound();
-                stack.setTagCompound(tags);
+                tags = new CompoundNBT();
+                stack.setTag(tags);
             }
-            tags.setBoolean("destroyer", !tags.getBoolean("destroyer"));
-            player.swingArm(hand);
+            tags.putBoolean("destroyer", !tags.getBoolean("destroyer"));
+            player.swing(hand);
         }
-        return new ActionResult<>(EnumActionResult.SUCCESS, stack);
+        return new ActionResult<>(ActionResultType.SUCCESS, stack);
     }
 
     @Override
-    public boolean onBlockStartBreak(ItemStack stack, BlockPos pos, EntityPlayer player) {
-        if (stack.getTagCompound() != null && stack.getTagCompound().getBoolean("destroyer")) {
-            RayTraceResult traceResult = RayTracer.retrace(player, 10, true);
+    public boolean onBlockStartBreak(ItemStack itemstack, BlockPos pos, PlayerEntity player) {
+        if (player.isCreative() && itemstack.getOrCreateTag().getBoolean("destroyer")) {
+            BlockRayTraceResult traceResult = RayTracer.retrace(player,
+                    10, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.ANY);
             if (traceResult != null) {
-                breakOtherBlock(player, stack, pos, traceResult.sideHit);
+                breakOtherBlock(player, itemstack, pos, traceResult.getDirection());
             }
         }
         return false;
     }
 
-    public void breakOtherBlock(EntityPlayer player, ItemStack stack, BlockPos pos, EnumFacing sideHit) {
+    @Override
+    public boolean mineBlock(ItemStack stack, World world, BlockState state, BlockPos pos, LivingEntity player) {
+        if (stack.getTag() != null && stack.getTag().getBoolean("destroyer") && player instanceof PlayerEntity) {
+            BlockRayTraceResult traceResult = RayTracer.retrace((PlayerEntity) player,
+                    10, RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.ANY);
+            if (traceResult != null) {
+                breakOtherBlock((PlayerEntity) player, stack, pos, traceResult.getDirection());
+            }
+        }
+        return false;
+    }
 
-        World world = player.world;
-        IBlockState state = world.getBlockState(pos);
+    public void breakOtherBlock(PlayerEntity player, ItemStack stack, BlockPos pos, Direction sideHit) {
+
+        World world = player.level;
+        BlockState state = world.getBlockState(pos);
         Material mat = state.getMaterial();
-        if (!ItemPickaxeInfinity.MATERIALS.contains(mat)) {
+        if (!isValidMaterial(mat)) {
             return;
         }
 
@@ -122,7 +128,7 @@ public class ItemShovelInfinity extends ItemSpade {
             return;
         }
 
-        boolean doY = sideHit.getAxis() != Axis.Y;
+        boolean doY = sideHit.getAxis() != Direction.Axis.Y;
 
         int range = 8;
         BlockPos min = new BlockPos(-range, doY ? -1 : -range, -range);
@@ -143,9 +149,13 @@ public class ItemShovelInfinity extends ItemSpade {
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
-    public boolean hasEffect(ItemStack par1ItemStack) {
+    @OnlyIn(Dist.CLIENT)
+    public boolean isFoil(ItemStack par1ItemStack) {
         return false;
     }
 
+    @Override
+    public boolean isValidMaterial(Material material) {
+        return ItemPickaxeInfinity.MATERIALS.contains(material);
+    }
 }

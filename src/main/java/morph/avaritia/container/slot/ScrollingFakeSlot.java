@@ -24,7 +24,7 @@ public class ScrollingFakeSlot extends FakeSlot {
     }
 
     @Override
-    public ItemStack getStack() {
+    public ItemStack getItem() {
         if (Avaritia.proxy.isClient() && stacksSupplier.get() != null && stacksSupplier.get().size() > 0) {
             World world = Avaritia.proxy.getClientWorld();
             List<ItemStack> stacks = stacksSupplier.get();

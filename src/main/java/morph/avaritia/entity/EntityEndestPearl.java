@@ -1,53 +1,82 @@
 package morph.avaritia.entity;
 
 import codechicken.lib.vec.Vector3;
+import morph.avaritia.init.ModEntities;
+import morph.avaritia.init.ModItems;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.projectile.EntityThrowable;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.projectile.ProjectileItemEntity;
+import net.minecraft.item.Item;
+import net.minecraft.particles.ParticleTypes;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.Direction;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.EntityRayTraceResult;
 import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.world.World;
 
-public class EntityEndestPearl extends EntityThrowable {
+public class EntityEndestPearl extends ProjectileItemEntity {
 
-    public EntityEndestPearl(World world, double x, double y, double z) {
-        super(world, x, y, z);
+
+    public EntityEndestPearl(EntityType entityType, World world) {
+        super(entityType, world);
     }
 
-    public EntityEndestPearl(World world, EntityLivingBase ent) {
-        super(world, ent);
+    public EntityEndestPearl(double x, double y, double z, World world) {
+        super(ModEntities.endestPearlEntity, x, y, z, world);
     }
 
-    public EntityEndestPearl(World world) {
-        super(world);
+    public EntityEndestPearl(LivingEntity entity, World world) {
+        super(ModEntities.endestPearlEntity, entity, world);
+    }
+
+
+    @Override
+    protected void onHit(RayTraceResult pos) {
+        super.onHit(pos);
+
+        for (int i = 0; i < 100; ++i) {
+            this.level.addParticle(ParticleTypes.PORTAL,
+                    getX(),
+                    getY(),
+                    getZ(),
+                    random.nextGaussian() * 3,
+                    random.nextGaussian() * 3,
+                    random.nextGaussian() * 3);
+        }
+
+        if (!this.level.isClientSide()) {
+            //this.worldObj.createExplosion(this, pos.hitVec.xCoord, pos.hitVec.yCoord, pos.hitVec.zCoord, 4.0f, true);
+
+            Entity ent = new EntityGapingVoid(this.level);
+            if (pos instanceof BlockRayTraceResult) {
+                Direction dir = ((BlockRayTraceResult) pos).getDirection();
+                Vector3 offset = new Vector3(dir.getStepX(), dir.getStepY(), dir.getStepZ());
+                ent.setPos(getX() + offset.x * 0.25, getY() + offset.y * 0.25, getZ() + offset.z * 0.25);
+                ent.xRot = 0.0F;
+                ent.yRot = this.yRot;
+            }
+            level.addFreshEntity(ent);
+
+            kill();
+        }
     }
 
     @Override
-    protected void onImpact(RayTraceResult pos) {
-        if (pos.entityHit != null) {
-            pos.entityHit.attackEntityFrom(DamageSource.causeThrownDamage(this, getThrower()), 0.0F);
-        }
+    protected void onHitEntity(EntityRayTraceResult pos) {
+        super.onHitEntity(pos);
+        pos.getEntity().hurt(DamageSource.thrown(this, getOwner()), 0.0F);
 
-        for (int i = 0; i < 100; ++i) {
-            world.spawnParticle(EnumParticleTypes.PORTAL, posX, posY, posZ, rand.nextGaussian() * 3, rand.nextGaussian() * 3, rand.nextGaussian() * 3);
-        }
-
-        if (!world.isRemote) {
-            //this.worldObj.createExplosion(this, pos.hitVec.xCoord, pos.hitVec.yCoord, pos.hitVec.zCoord, 4.0f, true);
-
-            Entity ent = new EntityGapingVoid(world);
-            EnumFacing dir = pos.sideHit;
-            Vector3 offset = Vector3.zero.copy();
-            if (pos.sideHit != null) {
-                offset = new Vector3(dir.getFrontOffsetX(), dir.getFrontOffsetY(), dir.getFrontOffsetZ());
-            }
-            ent.setLocationAndAngles(posX + offset.x * 0.25, posY + offset.y * 0.25, posZ + offset.z * 0.25, rotationYaw, 0.0F);
-            world.spawnEntity(ent);
-
-            setDead();
-        }
     }
 
+    @Override
+    protected Item getDefaultItem() {
+        return ModItems.endest_pearl;
+    }
+
+    @Override
+    protected void defineSynchedData() {
+
+    }
 }

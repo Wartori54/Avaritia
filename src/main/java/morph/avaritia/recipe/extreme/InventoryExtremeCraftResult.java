@@ -1,27 +1,27 @@
 package morph.avaritia.recipe.extreme;
 
-import morph.avaritia.tile.TileDireCraftingTable;
-import net.minecraft.inventory.InventoryCraftResult;
+import net.minecraft.inventory.CraftResultInventory;
+import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
 
-public class InventoryExtremeCraftResult extends InventoryCraftResult {
+public class InventoryExtremeCraftResult extends CraftResultInventory {
 
-    private TileDireCraftingTable craft;
+    private IInventory craft;
 
-    public InventoryExtremeCraftResult(TileDireCraftingTable table) {
+    public InventoryExtremeCraftResult(IInventory table) {
         craft = table;
     }
 
     @Override
-    public ItemStack getStackInSlot(int par1) {
-        return craft.getStackInSlot(0);
+    public ItemStack getItem(int par1) {
+        return craft.getItem(0);
     }
 
     @Override
-    public ItemStack decrStackSize(int par1, int par2) {
-        ItemStack stack = craft.getStackInSlot(0);
+    public ItemStack removeItem(int par1, int par2) {
+        ItemStack stack = craft.getItem(0);
         if (!stack.isEmpty()) {
-            craft.setInventorySlotContents(0, ItemStack.EMPTY);
+            craft.setItem(0, ItemStack.EMPTY);
             return stack;
         } else {
             return ItemStack.EMPTY;
@@ -29,8 +29,8 @@ public class InventoryExtremeCraftResult extends InventoryCraftResult {
     }
 
     @Override
-    public void setInventorySlotContents(int par1, ItemStack par2ItemStack) {
-        craft.setInventorySlotContents(0, par2ItemStack);
+    public void setItem(int par1, ItemStack par2ItemStack) {
+        craft.setItem(0, par2ItemStack);
     }
 
 }

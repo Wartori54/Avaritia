@@ -1,0 +1,6 @@
+{
+  "parent": "avaritia:item/infinity_bow",
+  "textures": {
+    "layer0": "avaritia:items/tools/infinity_bow/pull_2"
+  }
+}

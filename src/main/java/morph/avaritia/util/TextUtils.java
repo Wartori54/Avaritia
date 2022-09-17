@@ -25,7 +25,7 @@ public class TextUtils {
             delay = 0.001;
         }
 
-        int offset = (int) Math.floor(Minecraft.getSystemTime() / delay) % colours.length;
+        int offset = (int) (Math.floor(Minecraft.getInstance().getFrameTime() / delay) % colours.length); // TODO: getFrameTime may be problematic as it was getSystemTime
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);

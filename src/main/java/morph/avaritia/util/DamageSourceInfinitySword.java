@@ -1,12 +1,11 @@
 package morph.avaritia.util;
 
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EntityDamageSource;
-import net.minecraft.util.EnumHand;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 
 public class DamageSourceInfinitySword extends EntityDamageSource {
 
@@ -15,18 +14,22 @@ public class DamageSourceInfinitySword extends EntityDamageSource {
     }
 
     @Override
-    public ITextComponent getDeathMessage(EntityLivingBase entity) {
-        ItemStack itemstack = damageSourceEntity instanceof EntityLivingBase ? ((EntityLivingBase) damageSourceEntity).getHeldItem(EnumHand.MAIN_HAND) : null;
+    public ITextComponent getLocalizedDeathMessage(LivingEntity entity) {
+        ItemStack itemstack = this.entity instanceof LivingEntity ? ((LivingEntity) this.entity).getMainHandItem() : null;
         String s = "death.attack.infinity";
-        int rando = entity.getEntityWorld().rand.nextInt(5);
+        int rando = entity.level.random.nextInt(5);
         if (rando != 0) {
             s = s + "." + rando;
         }
-        return new TextComponentTranslation(s, entity.getDisplayName(), itemstack.getDisplayName());
+        if (itemstack == null) {
+            throw new IllegalArgumentException("killer entity has no item in hand H O W");
+        } else {
+            return new TranslationTextComponent(s, entity.getDisplayName(), itemstack.getDisplayName());
+        }
     }
 
     @Override
-    public boolean isDifficultyScaled() {
+    public boolean scalesWithDifficulty() {
         return false;
     }
 

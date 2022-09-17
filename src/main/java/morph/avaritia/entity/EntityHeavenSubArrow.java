@@ -1,39 +1,45 @@
 package morph.avaritia.entity;
 
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.projectile.EntityArrow;
-import net.minecraft.init.Items;
+import morph.avaritia.init.ModEntities;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.projectile.AbstractArrowEntity;
+import net.minecraft.entity.projectile.ArrowEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.world.World;
 
-public class EntityHeavenSubArrow extends EntityArrow {
+public class EntityHeavenSubArrow extends AbstractArrowEntity {
 
-    public EntityHeavenSubArrow(World world, double x, double y, double z) {
-        super(world, x, y, z);
+    public EntityHeavenSubArrow(EntityType entityType, World world) {
+        super(entityType, world);
     }
 
-    public EntityHeavenSubArrow(World world, EntityLivingBase entity) {
-        super(world, entity);
+    public EntityHeavenSubArrow(double x, double y, double z, World world) {
+        super(ModEntities.heavenSubArrowEntity, x, y, z, world);
+    }
+
+    public EntityHeavenSubArrow(LivingEntity entity, World world) {
+        super(ModEntities.heavenSubArrowEntity, entity, world);
 
     }
 
-    public EntityHeavenSubArrow(World world) {
-        super(world);
-    }
+//    public EntityHeavenSubArrow(World world) {
+//        super(world);
+//    }
 
     @Override
-    public void onUpdate() {
-        rotationPitch = 0;
-        rotationYaw = 0;
-        super.onUpdate();
+    public void tick() {
+        this.setRot(0, 0);
+        super.tick();
 
-        if (inGround && timeInGround >= 20) {
-            setDead();
+        if (inGround && inGroundTime >= 20) {
+            kill();
         }
     }
 
     @Override
-    protected ItemStack getArrowStack() {
+    protected ItemStack getPickupItem() {
         return new ItemStack(Items.ARROW);
     }
 }

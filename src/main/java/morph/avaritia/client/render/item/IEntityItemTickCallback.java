@@ -1,8 +1,8 @@
 package morph.avaritia.client.render.item;
 
-import net.minecraft.entity.item.EntityItem;
+import net.minecraft.entity.item.ItemEntity;
 
 public interface IEntityItemTickCallback {
 
-    void onEntityTick(EntityItem item);
+    void onEntityTick(ItemEntity item);
 }

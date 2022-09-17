@@ -15,14 +15,14 @@ public class ItemStackWrapper {
         if (otherobj instanceof ItemStackWrapper) {
             ItemStackWrapper other = (ItemStackWrapper) otherobj;
 
-            if (stack.getItem().equals(other.stack.getItem()) && stack.getItemDamage() == other.stack.getItemDamage()) {
+            if (stack.getItem().equals(other.stack.getItem()) && stack.getDamageValue() == other.stack.getDamageValue()) {
 
-                if (stack.getTagCompound() == null && other.stack.getTagCompound() == null) {
+                if (stack.getTag() == null && other.stack.getTag() == null) {
                     return true;
                 } else {
-                    if (stack.getTagCompound() == null ^ other.stack.getTagCompound() == null) {
+                    if (stack.getTag() == null ^ other.stack.getTag() == null) {
                         return false;
-                    } else if (stack.getTagCompound().equals(other.stack.getTagCompound())) {
+                    } else if (stack.getTag().equals(other.stack.getTag())) {
                         return true;
                     }
                 }
@@ -35,10 +35,10 @@ public class ItemStackWrapper {
     @Override
     public int hashCode() {
         int h = stack.getItem().hashCode();
-        if (stack.getTagCompound() != null) {
-            h ^= stack.getTagCompound().hashCode();
+        if (stack.getTag() != null) {
+            h ^= stack.getTag().hashCode();
         }
-        return h ^ stack.getItemDamage();
+        return h ^ stack.getDamageValue();
     }
 
     @Override

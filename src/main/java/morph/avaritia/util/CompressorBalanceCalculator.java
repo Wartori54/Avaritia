@@ -1,7 +1,7 @@
 package morph.avaritia.util;
 
 import morph.avaritia.handler.ConfigHandler;
-import net.minecraftforge.fml.common.Loader;
+import net.minecraftforge.fml.ModList;
 
 public class CompressorBalanceCalculator {
 
@@ -9,61 +9,61 @@ public class CompressorBalanceCalculator {
     public static int multiplier = 1;
 
     public static void gatherBalanceModifier() {//TODO, Update these for the correct ModID's
-        if (Loader.isModLoaded("thaumcraft")) {
+        if (ModList.get().isLoaded("thaumcraft")) {
             modifier += 100;
         }
-        if (Loader.isModLoaded("tconstruct")) {
+        if (ModList.get().isLoaded("tconstruct")) {
             modifier += 100;
             multiplier += 1;
         }
-        if (Loader.isModLoaded("thermalexpansion") || Loader.isModLoaded("ic2") || Loader.isModLoaded("thaumictinkerer")) {
+        if (ModList.get().isLoaded("thermalexpansion") || ModList.get().isLoaded("ic2") || ModList.get().isLoaded("thaumictinkerer")) {
             modifier += 300;
         }
-        if (Loader.isModLoaded("technom")) {
+        if (ModList.get().isLoaded("technom")) {
             modifier += 600;
         }
-        if (Loader.isModLoaded("mysticalagriculture")) {
+        if (ModList.get().isLoaded("mysticalagriculture")) {
             multiplier += 1;
         }
-        if (Loader.isModLoaded("agricraft")) {
+        if (ModList.get().isLoaded("agricraft")) {
             multiplier += 1;
         }
-        if (Loader.isModLoaded("minefactoryreloaded")) {
+        if (ModList.get().isLoaded("minefactoryreloaded")) {
             multiplier += 3;
         }
-        if (Loader.isModLoaded("bigreactors")) {
+        if (ModList.get().isLoaded("bigreactors")) {
             modifier += 100;
         }//The mod name is ExtremeReactors but in game still uses bigreactors for items
-        if (Loader.isModLoaded("ee3")) {
+        if (ModList.get().isLoaded("ee3")) {
             multiplier += 1;
-        } else if (Loader.isModLoaded("projecte")) {
+        } else if (ModList.get().isLoaded("projecte")) {
             multiplier += 3;
         }
-        if (Loader.isModLoaded("botania")) {
+        if (ModList.get().isLoaded("botania")) {
             modifier += 50;
         }
-        if (Loader.isModLoaded("extrautils2")) {
+        if (ModList.get().isLoaded("extrautils2")) {
             modifier += 500;
         }
-        if (Loader.isModLoaded("appliedenergistics2")) {
+        if (ModList.get().isLoaded("appliedenergistics2")) {
             modifier += 200;
         }
-        if (Loader.isModLoaded("immersiveengineering")) {
+        if (ModList.get().isLoaded("immersiveengineering")) {
             modifier += 300;
         }
-        if (Loader.isModLoaded("mekanism")) {
+        if (ModList.get().isLoaded("mekanism")) {
             modifier += 500;
             multiplier += 1;
 
         }
-        if (Loader.isModLoaded("torcherino")) {
+        if (ModList.get().isLoaded("torcherino")) {
             multiplier += 2;
         }
-        if (Loader.isModLoaded("draconicevolution")) {
+        if (ModList.get().isLoaded("draconicevolution")) {
             modifier += 300;
             multiplier += 1;
         }
-        if (Loader.isModLoaded("rftools") || Loader.isModLoaded("rftoolsdim")) {
+        if (ModList.get().isLoaded("rftools") || ModList.get().isLoaded("rftoolsdim")) {
             modifier += 300;
             multiplier += 1;
         }

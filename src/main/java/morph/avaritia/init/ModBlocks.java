@@ -1,78 +1,91 @@
 package morph.avaritia.init;
 
 import morph.avaritia.Avaritia;
-import morph.avaritia.api.registration.IModelRegister;
 import morph.avaritia.block.*;
-import morph.avaritia.tile.TileDireCraftingTable;
-import morph.avaritia.tile.TileNeutronCollector;
-import morph.avaritia.tile.TileNeutroniumCompressor;
 import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemBlock;
-import net.minecraftforge.fml.common.registry.ForgeRegistries;
-import net.minecraftforge.fml.common.registry.GameRegistry;
-import net.minecraftforge.registries.IForgeRegistryEntry;
+import net.minecraft.state.BooleanProperty;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.registries.ObjectHolder;
 
 import java.util.function.Consumer;
 
+@ObjectHolder(Avaritia.MOD_ID)
 public class ModBlocks {
 
-    public static BlockCompressedCraftingTable compressedCraftingTable;
-    public static BlockDoubleCompressedCraftingTable doubleCompressedCraftingTable;
-    public static BlockExtremeCraftingTable extremeCraftingTable;
+    @ObjectHolder("compressed_crafting_table") public static BlockCompressedCraftingTable compressed_crafting_table;
+    @ObjectHolder("double_compressed_crafting_table") public static BlockCompressedCraftingTable double_compressed_craftingTable;
+    @ObjectHolder("extreme_crafting_table") public static BlockExtremeCraftingTable extreme_crafting_table;
 
-    public static BlockResource resource;
+    @ObjectHolder("neutron_block") public static Block neutron_block;
+    @ObjectHolder("infinity_block") public static Block infinity_block;
+    @ObjectHolder("crystal_matrix") public static Block crystal_matrix;
 
-    public static BlockNeutronCollector neutron_collector;
-    public static BlockNeutroniumCompressor neutronium_compressor;
+    @ObjectHolder("neutron_collector") public static BlockNeutronCollector neutron_collector;
+    @ObjectHolder("neutronium_compressor") public static BlockNeutroniumCompressor neutronium_compressor;
 
-    public static void init() {
-        compressedCraftingTable = registerBlock(new BlockCompressedCraftingTable());
-        registerItemBlock(compressedCraftingTable);
+    public static void init(RegistryEvent.Register<Block> event) {
+        BlockRegistry registry = new BlockRegistry(event);
 
-        doubleCompressedCraftingTable = registerBlock(new BlockDoubleCompressedCraftingTable());
-        registerItemBlock(doubleCompressedCraftingTable);
+        registry.registerBlockResource("neutron_block");
+        registry.registerBlockResource("infinity_block");
+        registry.registerBlockResource("crystal_matrix");
 
-        extremeCraftingTable = registerBlock(new BlockExtremeCraftingTable());
-        registerItemBlock(extremeCraftingTable);
-        GameRegistry.registerTileEntity(TileDireCraftingTable.class, "avaritia_extreme_crafting_table");
+        registry.registerBlockNoReg(new BlockCompressedCraftingTable(BlockCompressedCraftingTable.Tier.COMPRESSED));
+        registry.registerBlockNoReg(new BlockCompressedCraftingTable(BlockCompressedCraftingTable.Tier.DOUBLE_COMPRESSED));
 
-        resource = registerBlock(new BlockResource());
-        registerItem(new ItemBlockResource(resource));
+        registry.registerBlock(new BlockExtremeCraftingTable(), "extreme_crafting_table");
 
-        neutron_collector = registerBlock(new BlockNeutronCollector());
-        registerItemBlock(neutron_collector);
-        GameRegistry.registerTileEntity(TileNeutronCollector.class, "neutron_collector");
+        registry.registerBlock(new BlockNeutronCollector(), "neutron_collector");
 
-        neutronium_compressor = registerBlock(new BlockNeutroniumCompressor());
-        registerItemBlock(neutronium_compressor);
-        GameRegistry.registerTileEntity(TileNeutroniumCompressor.class, "neutronium_compressor");
+        registry.registerBlock(new BlockNeutroniumCompressor(), "neutronium_compressor");
     }
 
-    public static <V extends Block> V registerBlock(V block) {
-        registerImpl(block, ForgeRegistries.BLOCKS::register);
-        return block;
-    }
+    private static class BlockRegistry {
+        private final RegistryEvent.Register<Block> event;
 
-    public static <V extends Item> V registerItem(V item) {
-        registerImpl(item, ForgeRegistries.ITEMS::register);
-        return item;
-    }
-
-    public static <V extends IForgeRegistryEntry<V>> V registerImpl(V registryObject, Consumer<V> registerCallback) {
-        registerCallback.accept(registryObject);
-
-        if (registryObject instanceof IModelRegister) {
-            Avaritia.proxy.addModelRegister((IModelRegister) registryObject);
+        private BlockRegistry(RegistryEvent.Register<Block> event) {
+            this.event = event;
         }
 
-        return registryObject;
+        public void registerBlockResource(String name) {
+            event.getRegistry().register(new BlockResource(new ResourceLocation(Avaritia.MOD_ID, name)));
+        }
+
+        public void registerBlock(Block block, String name) {
+            event.getRegistry().register(block.setRegistryName(new ResourceLocation(Avaritia.MOD_ID, name)));
+
+        }
+
+        public void registerBlockNoReg(Block block) {
+            event.getRegistry().register(block);
+        }
     }
 
-    public static ItemBlock registerItemBlock(Block block) {
-        ItemBlock itemBlock = new ItemBlock(block);
-        registerItem(itemBlock.setRegistryName(block.getRegistryName()));
-        return itemBlock;
-    }
+//    public static <V extends Block> V registerBlock(V block) {
+//        registerImpl(block, ForgeRegistries.BLOCKS::register);
+//        return block;
+//    }
+//
+//    public static <V extends Item> V registerItem(V item) {
+//        registerImpl(item, ForgeRegistries.ITEMS::register);
+//        return item;
+//    }
+//
+//    public static <V extends IForgeRegistryEntry<V>> V registerImpl(V registryObject, Consumer<V> registerCallback) {
+//        registerCallback.accept(registryObject);
+//
+//        if (registryObject instanceof IModelRegister) {
+//            Avaritia.proxy.addModelRegister((IModelRegister) registryObject);
+//        }
+//
+//        return registryObject;
+//    }
+//
+//    public static ItemBlock registerItemBlock(Block block) {
+//        ItemBlock itemBlock = new ItemBlock(block);
+//        registerItem(itemBlock.setRegistryName(block.getRegistryName()));
+//        return itemBlock;
+//    }
 
 }

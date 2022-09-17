@@ -1,13 +1,17 @@
 package net.covers1624.lib.gui;
 
-import codechicken.lib.gui.GuiDraw;
 import codechicken.lib.texture.TextureUtils;
 import codechicken.lib.vec.Rectangle4i;
-import net.minecraft.client.gui.Gui;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.screen.inventory.ContainerScreen;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraftforge.fml.client.gui.GuiUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.awt.*;
+import java.awt.Point;
+import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -16,7 +20,7 @@ import java.util.function.Supplier;
  */
 public class DrawableGuiElement {
 
-    private final Gui parent;
+    private final ContainerScreen<?> parent;
     private final ResourceLocation SPRITE_LOCATION;
     //The location of the sprite on the texture.
     private final Rectangle4i SPRITE;
@@ -26,9 +30,9 @@ public class DrawableGuiElement {
     private final Supplier<Pair<Integer, Integer>> animSupplier;
     private final AnimationDirection ANIMATION_DIRECTION;
     private final BooleanSupplier renderPredicate;
-    private final Supplier<String> tooltipSupplier;
+    private final Supplier<List<ITextComponent>> tooltipSupplier;
 
-    public DrawableGuiElement(Gui parent, ResourceLocation spriteLocation, Rectangle4i sprite, Point location, AnimationDirection animDirection, Supplier<Pair<Integer, Integer>> animationSupplier, BooleanSupplier renderPredicate, Supplier<String> tooltipSupplier) {
+    public DrawableGuiElement(ContainerScreen<?> parent, ResourceLocation spriteLocation, Rectangle4i sprite, Point location, AnimationDirection animDirection, Supplier<Pair<Integer, Integer>> animationSupplier, BooleanSupplier renderPredicate, Supplier<List<ITextComponent>> tooltipSupplier) {
         this.parent = parent;
         SPRITE_LOCATION = spriteLocation;
         SPRITE = sprite;
@@ -43,13 +47,13 @@ public class DrawableGuiElement {
         return new Rectangle4i(GUI_LOCATION.x, GUI_LOCATION.y, SPRITE.w, SPRITE.h);
     }
 
-    public void renderTooltip(Point mouse) {
+    public void renderTooltip(MatrixStack stack, Point mouse, FontRenderer font) {
         if (tooltipSupplier != null) {
-            GuiDraw.drawTip(mouse.x, mouse.y, tooltipSupplier.get());
+            GuiUtils.drawHoveringText(stack, tooltipSupplier.get(), mouse.x, mouse.y, parent.width, parent.height, -1, font);
         }
     }
 
-    public void draw() {
+    public void draw(MatrixStack stack) {
         if (!renderPredicate.getAsBoolean()) {
             return;
         }
@@ -91,7 +95,7 @@ public class DrawableGuiElement {
             }
         }
 
-        parent.drawTexturedModalRect(x, y, curSprite.x, curSprite.y, curSprite.w, curSprite.h);
+        parent.blit(stack, x, y, curSprite.x, curSprite.y, curSprite.w, curSprite.h);
     }
 
     private static float scaleF(float num, float max, float pixels) {
@@ -102,7 +106,7 @@ public class DrawableGuiElement {
         return num * pixels / max;
     }
 
-    public static enum AnimationDirection {
+    public enum AnimationDirection {
         STATIC,
         TOP_DOWN,
         BOTTOM_UP,

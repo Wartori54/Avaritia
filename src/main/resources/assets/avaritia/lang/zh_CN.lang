@@ -101,6 +101,7 @@ crafting.extreme=有序终极合成
 crafting.extreme.shapeless=无序终极合成
 crafting.extreme_compression=中子态素压缩机
 tip.infinity=Infinity
+tip.sanic=SANIC
 death.attack.infinity=%1$s被%2$s彻底粉碎
 death.attack.infinity.item=%1$s被%2$s彻底粉碎
 death.attack.infinity.1=%1$s被%2$s切成了条

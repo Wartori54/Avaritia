@@ -1,17 +1,20 @@
 package morph.avaritia.handler;
 
-import codechicken.lib.configuration.ConfigFile;
-import codechicken.lib.configuration.ConfigTag;
+import codechicken.lib.config.StandardConfigFile;
+import codechicken.lib.config.ConfigTag;
+import codechicken.lib.config.parser.ConfigFile;
 import com.google.common.collect.Lists;
 import morph.avaritia.util.Lumberjack;
+import net.minecraft.util.ResourceLocation;
 import org.apache.logging.log4j.Level;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class ConfigHandler {
 
     public static final String CONFIG_VERSION = "1.0";
-    public static ConfigFile config;
+    public static ConfigTag config;
 
     private static String current_version;
 
@@ -49,15 +52,15 @@ public class ConfigHandler {
 //    public static boolean botaniaTablet = false;
 //    public static boolean extrautils2 = false;
 
-    public static void init(File file) {
-        config = new ConfigFile(file, false);
-        try {
-            config.load();
-        } catch (Exception e) {
-            Lumberjack.big(Level.WARN, "Found forge based Avaritia config, the config will be wiped and defaults will be used.");
-            config.clear();
-            current_version = CONFIG_VERSION;
-        }
+    public static void init(StandardConfigFile file) {
+        config = file.load();
+
+//        try {
+//        } catch (Exception e) {
+//            Lumberjack.big(Level.WARN, "Found forge based Avaritia config, the config will be wiped and defaults will be used.");
+//            config.clear();
+//            current_version = CONFIG_VERSION;
+//        }
         config.setTagVersion(CONFIG_VERSION);
         loadConfig();
     }
@@ -88,11 +91,13 @@ public class ConfigHandler {
             fracturedOres = tag.setDefaultBoolean(false).getBoolean();
 
             tag = general.getTag("aoe_trash_defaults");
-            tag.setComment("These are the OreDictionary ID's for default trashed items. These are synced from the server to the client. And will appear as defaults on the client also. Clients can override these, They are defaults not Musts.");
-            String[] defaults = { "dirt", "sand", "gravel", "cobblestone", "netherrack", "stoneGranite", "stoneDiorite", "stoneAndesite" };
+            tag.setComment("These are the ID's for default trashed items. These are synced from the server to the client. And will appear as defaults on the client also. Clients can override these, They are defaults not Musts. \nFormat is \"modid:block\".");
+            String[] defaults = { "dirt", "sand", "gravel", "cobblestone", "netherrack", "granite", "diorite", "andesite" };
             tag.setDefaultStringList(Lists.newArrayList(defaults));
+            ArrayList<ResourceLocation> rList = new ArrayList<>();
+            tag.getStringList().forEach((str) -> rList.add(new ResourceLocation(str)));
             AvaritiaEventHandler.defaultTrashOres.clear();
-            AvaritiaEventHandler.defaultTrashOres.addAll(tag.getStringList());
+            AvaritiaEventHandler.defaultTrashOres.addAll(rList);
 
             tag = general.getTag("verbose_craft_tweaker_logging");
             tag.setComment("Enables verbose logging of actions taken on avaritia by CraftTweaker scripts. Only effects CraftTweakers script log file.");

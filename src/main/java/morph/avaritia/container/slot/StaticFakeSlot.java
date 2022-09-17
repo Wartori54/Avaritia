@@ -19,7 +19,7 @@ public class StaticFakeSlot extends FakeSlot {
 
     @Nullable
     @Override
-    public ItemStack getStack() {
+    public ItemStack getItem() {
         return stackSupplier.get();
     }
 }

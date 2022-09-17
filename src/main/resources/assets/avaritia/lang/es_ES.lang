@@ -100,6 +100,7 @@ crafting.extreme=Elaboración Extrema
 crafting.extreme.shapeless=Elaboración sin forma Extrema
 crafting.extreme_compression=Compresor de Neutrones
 tip.infinity=Infinito
+tip.sanic=SANIC
 death.attack.infinity=%1$s fue borrado por %2$s
 death.attack.infinity.item=%1$s fue borrado por %2$s
 death.attack.infinity.1=%1$s fue cortado en cintas por %2$s

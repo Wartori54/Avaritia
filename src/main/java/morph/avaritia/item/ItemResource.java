@@ -1,110 +1,107 @@
 package morph.avaritia.item;
 
-import codechicken.lib.item.ItemMultiType;
-import codechicken.lib.model.ModelRegistryHelper;
-import codechicken.lib.util.TransformUtils;
-import com.google.common.collect.Sets;
+import morph.avaritia.Avaritia;
 import morph.avaritia.api.IHaloRenderItem;
 import morph.avaritia.api.registration.IModelRegister;
-import morph.avaritia.client.render.item.HaloRenderItem;
 import morph.avaritia.entity.EntityImmortalItem;
 import morph.avaritia.init.AvaritiaTextures;
-import net.minecraft.client.renderer.block.model.IBakedModel;
-import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.Entity;
-import net.minecraft.item.EnumRarity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.translation.I18n;
+import net.minecraft.item.Rarity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-
+import java.util.*;
 /**
  * Created by covers1624 on 11/04/2017.
  */
-public class ItemResource extends ItemMultiType implements IHaloRenderItem, IModelRegister {
+public class ItemResource extends Item implements IHaloRenderItem, IModelRegister {
+    private static final List<String> haloItems = Arrays.asList("neutron_pile",
+                                                                "neutron_nugget",
+                                                                "neutron_ingot",
+                                                                "infinity_catalyst",
+                                                                "infinity_ingot");
 
-    protected HashMap<Integer, EnumRarity> rarityMap = new HashMap<>();
-
-    public ItemResource(CreativeTabs tab, String registryName) {
-        super(tab, registryName);
+    public ItemResource(ResourceLocation name, Rarity rarity) {
+        super(new Item.Properties().tab(Avaritia.TAB).rarity(rarity));
+        this.setRegistryName(name);
     }
 
-    public ItemStack registerItem(String name, EnumRarity rarity) {
-        ItemStack stack = super.registerItem(name);
-        for (Entry<Integer, String> entry : names.entrySet()) {
-            if (entry.getValue().equals(name)) {
-                rarityMap.put(entry.getKey(), rarity);
-                break;
-            }
-        }
-        return stack;
-    }
 
     @Override
-    public void addInformation(ItemStack stack, World worldIn, List<String> tooltip, ITooltipFlag flagIn) {
-        int meta = stack.getItemDamage();
-        if (meta != 0) {
-            tooltip.add(TextFormatting.DARK_GRAY + "" + TextFormatting.ITALIC + I18n.translateToLocal("tooltip." + getUnlocalizedName(stack) + ".desc"));
-        }
-    }
-
-    @Override
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean shouldDrawHalo(ItemStack stack) {
-        int meta = stack.getItemDamage();
-        return (meta >= 2 && meta <= 6);
+        ResourceLocation name = stack.getItem().getRegistryName();
+        return (name != null && haloItems.contains(name.getPath()));
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public TextureAtlasSprite getHaloTexture(ItemStack stack) {
-        int meta = stack.getItemDamage();
-        if (meta == 2 || meta == 3 || meta == 4) {
-            return AvaritiaTextures.HALO_NOISE;
+        ResourceLocation name = stack.getItem().getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("Something is very wrong... stack turned null"); // we won't draw halo if it's null as stated on shouldDrawHalo
         }
-        return AvaritiaTextures.HALO;
+        switch (name.getPath()) {
+            case "neutron_pile":
+            case "neutron_nugget":
+            case "neutron_ingot":
+                return AvaritiaTextures.HALO_NOISE;
+            default:
+                return AvaritiaTextures.HALO;
+        }
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public int getHaloSize(ItemStack stack) {
-        int meta = stack.getItemDamage();
-        switch (meta) {
-            case 5:
-            case 6:
-                return 10;
+        ResourceLocation name = stack.getItem().getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("Something is very wrong... stack turned null"); // we won't draw halo if it's null as stated on shouldDrawHalo
         }
-        return 8;
+        switch (name.getPath()) {
+            case "infinity_catalyst":
+            case "infinity_ingot":
+                return 10;
+            default:
+                return 8;
+        }
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public boolean shouldDrawPulse(ItemStack stack) {
-        int meta = stack.getItemDamage();
-        return meta == 5 || meta == 6;
+        ResourceLocation name = stack.getItem().getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("Something is very wrong... stack turned null"); // we won't draw halo if it's null as stated on shouldDrawHalo
+        }
+        switch (name.getPath()) {
+            case "infinity_catalyst":
+            case "infinity_ingot":
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
-    @SideOnly (Side.CLIENT)
+    @OnlyIn(Dist.CLIENT)
     public int getHaloColour(ItemStack stack) {
-        int meta = stack.getItemDamage();
-        if (meta == 2) {
+        ResourceLocation name = stack.getItem().getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("Something is very wrong... stack turned null"); // we won't draw halo if it's null as stated on shouldDrawHalo
+        }
+        if (name.getPath().equals("neutron_pile")) {
             return 0x33FFFFFF;
         }
-        if (meta == 3) {
+        if (name.getPath().equals("neutron_nugget")) {
             return 0x4DFFFFFF;
         }
-        if (meta == 4) {
+        if (name.getPath().equals("neutron_ingot")) {
             return 0x99FFFFFF;
         }
         return 0xFF000000;
@@ -112,32 +109,45 @@ public class ItemResource extends ItemMultiType implements IHaloRenderItem, IMod
 
     @Override
     public boolean hasCustomEntity(ItemStack stack) {
-        int meta = stack.getItemDamage();
-        return meta == 5 || meta == 6;
-    }
-
-    @Override
-    public Entity createEntity(World world, Entity location, ItemStack itemstack) {
-        int meta = itemstack.getItemDamage();
-        return (meta == 5 || meta == 6) ? new EntityImmortalItem(world, location, itemstack) : null;
-    }
-
-    @Override
-    @SideOnly (Side.CLIENT)
-    public void registerModels() {
-        super.registerModels();
-        Set<Integer> toRegister = Sets.newHashSet(2, 3, 4, 5, 6);
-
-        for (int meta : toRegister) {
-            String name = names.get(meta);
-            final ModelResourceLocation location = new ModelResourceLocation(getRegistryName(), "type=" + name);
-            IBakedModel wrapped = new HaloRenderItem(TransformUtils.DEFAULT_ITEM, modelRegistry -> modelRegistry.getObject(location));
-            ModelRegistryHelper.register(location, wrapped);
+        ResourceLocation name = stack.getItem().getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("Something is very wrong... stack turned null"); // we won't draw halo if it's null as stated on shouldDrawHalo
+        }
+        switch (name.getPath()) {
+            case "infinity_catalyst":
+            case "infinity_ingot":
+                return true;
+            default:
+                return false;
         }
     }
 
     @Override
-    public EnumRarity getRarity(ItemStack stack) {
-        return rarityMap.getOrDefault(stack.getMetadata(), super.getRarity(stack));
+    public Entity createEntity(World world, Entity location, ItemStack itemstack) {
+        ResourceLocation name = itemstack.getItem().getRegistryName();
+        if (name == null) {
+            throw new IllegalStateException("Something is very wrong... stack turned null"); // we won't draw halo if it's null as stated on shouldDrawHalo
+        }
+        switch (name.getPath()) {
+            case "infinity_catalyst":
+            case "infinity_ingot":
+                return new EntityImmortalItem(world, location, itemstack);
+            default:
+                return null;
+        }
+    }
+
+    @Override // TODO: fix this
+    @OnlyIn(Dist.CLIENT)
+    public void registerModels() {
+//        super.registerModels();
+//        Set<Integer> toRegister = Sets.newHashSet(2, 3, 4, 5, 6);
+//
+//        for (int meta : toRegister) {
+//            String name = names.get(meta);
+//            final ModelResourceLocation location = new ModelResourceLocation(getRegistryName(), "type=" + name);
+//            IBakedModel wrapped = new HaloRenderItem(TransformUtils.DEFAULT_ITEM, modelRegistry -> modelRegistry.getObject(location));
+//            ModelRegistryHelper.register(location, wrapped);
+//        }
     }
 }
