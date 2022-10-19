@@ -1,6 +1,7 @@
 package morph.avaritia.util;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.Util;
 import net.minecraft.util.text.TextFormatting;
 
 import static net.minecraft.util.text.TextFormatting.*;
@@ -25,7 +26,7 @@ public class TextUtils {
             delay = 0.001;
         }
 
-        int offset = (int) (Math.floor(Minecraft.getInstance().getFrameTime() / delay) % colours.length); // TODO: getFrameTime may be problematic as it was getSystemTime
+        int offset = (int) (Math.floor(Util.getMillis() / delay) % colours.length); // TODO: getFrameTime may be problematic as it was getSystemTime
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);

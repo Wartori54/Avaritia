@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "avaritia:items/armor/legs/layer_0",
+    "mask": "avaritia:items/armor/legs/layer_0_mask"
+  }
+}

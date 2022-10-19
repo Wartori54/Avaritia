@@ -21,6 +21,6 @@ public class ItemSwordSkulls extends SwordItem {
 
     @Override
     public void appendHoverText(ItemStack stack, World worldIn, List<ITextComponent> tooltip, ITooltipFlag flagIn) {
-        tooltip.add(new TranslationTextComponent("tooltip.skullfire_sword.desc").withStyle(TextFormatting.GRAY, TextFormatting.ITALIC));
+        tooltip.add(new TranslationTextComponent("tooltip.skullfire_sword.desc").withStyle(TextFormatting.DARK_GRAY, TextFormatting.ITALIC));
     }
 }

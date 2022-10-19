@@ -12,7 +12,7 @@ import net.minecraftforge.fml.network.event.EventNetworkChannel;
 /**
  * Created by covers1624 on 20/05/2017.
  */
-public class NetworkDispatcher {
+public class NetworkDispatcher { // TODO: delete this not needed
 
     public static final ResourceLocation NET_CHANNEL = new ResourceLocation(Avaritia.MOD_ID, "avaritia");
     private static final String PROTOCOL_VERSION = "1";

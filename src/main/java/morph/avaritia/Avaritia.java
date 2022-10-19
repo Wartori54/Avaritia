@@ -32,7 +32,6 @@ public class Avaritia {
 
     public static Avaritia instance;
 
-//    @SidedProxy (clientSide = "morph.avaritia.proxy.ProxyClient", serverSide = "morph.avaritia.proxy.Proxy")
     public static Proxy proxy;
 
     public Avaritia() {

@@ -73,7 +73,7 @@ public class CosmicShaderHelper {
 
         int coord = world.getRawBrightness(pos, 0);
 
-        int[] map = null; // Minecraft.getInstance().entityRenderer.lightmapColors; TODO: fix this
+        int[] map = null; //Minecraft.getInstance().getEntityRenderDispatcher().lightmapColors; TODO: fix this
         if (map == null) {
             setLightLevel(1.0f);
             return;

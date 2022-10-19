@@ -69,7 +69,7 @@ public class ModItems {
     @ObjectHolder("infinity_helmet") public static ItemArmorInfinity infinity_helmet;
     @ObjectHolder("infinity_chestplate") public static ItemArmorInfinity infinity_chestplate;
     @ObjectHolder("infinity_pants") public static ItemArmorInfinity infinity_pants;
-    @ObjectHolder("infinity_pants") public static ItemArmorInfinity infinity_boots;
+    @ObjectHolder("infinity_boots") public static ItemArmorInfinity infinity_boots;
 
     @ObjectHolder("skullfire_sword") public static ItemSwordSkulls skull_sword;
 

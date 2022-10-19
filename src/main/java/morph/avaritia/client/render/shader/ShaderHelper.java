@@ -8,10 +8,8 @@
 
 package morph.avaritia.client.render.shader;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import morph.avaritia.util.Lumberjack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.RenderHelper;
 import org.apache.logging.log4j.Level;
 import org.lwjgl.opengl.ARBFragmentShader;
 import org.lwjgl.opengl.ARBShaderObjects;
@@ -37,6 +35,7 @@ public final class ShaderHelper {
         }
 
         cosmicShader = createProgram("cosmic.vert", "cosmic.frag");
+        Lumberjack.log(Level.INFO, "Opengl version: " + GL11.glGetString(GL11.GL_VERSION));
     }
 
     public static void useShader(int shader, ShaderCallback callback) {

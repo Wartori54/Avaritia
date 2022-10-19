@@ -9,9 +9,11 @@ buildscript {
             name = "sonatype"
             url = "https://oss.sonatype.org/content/repositories/snapshots/"
         }
+        maven { url = 'https://maven.parchmentmc.org' }
     }
     dependencies {
         classpath "net.minecraftforge.gradle:ForgeGradle:5.1.+"
+        classpath "org.parchmentmc:librarian:1.+"
     }
 }
 
@@ -22,6 +24,7 @@ plugins {
 
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'java'
+apply plugin: 'org.parchmentmc.librarian.forgegradle'
 
 // without this building crashes
 compileJava.options.encoding = "UTF-8"
@@ -87,7 +90,7 @@ println config.mc_version + "-" + config.forge_version
 version = "${config.mc_version}-${config.mod_version}"
 // Setup the forge minecraft plugin data. Specify the preferred forge/minecraft version here
 minecraft {
-    mappings channel: 'official', version: config.mc_version
+    mappings channel: 'parchment', version: config.mappings
     accessTransformer = file("src/main/resources/avaritia_at.cfg")
     runs {
         client {

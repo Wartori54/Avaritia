@@ -140,7 +140,7 @@ public class ItemPickaxeInfinity extends PickaxeItem implements InfinityItem {
                 if (!(victim instanceof PlayerEntity && AvaritiaEventHandler.isInfinite((PlayerEntity) victim))) {
                     int i = 10;
                     Vector3d movement = victim.getDeltaMovement();
-                    victim.setDeltaMovement(movement.add(-Math.sin(player.yRot * (float) Math.PI / 180.0F) * i * 0.5F, 2.0D, Math.cos(player.xRot * (float) Math.PI / 180.0F) * i * 0.5F));
+                    victim.setDeltaMovement(movement.add(-Math.sin(player.yRot * (float) Math.PI / 180.0F) * i * 0.5F, 2.0D, Math.cos(player.yRot * (float) Math.PI / 180.0F) * i * 0.5F));
                 }
             }
         }

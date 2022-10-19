@@ -7,11 +7,13 @@ import morph.avaritia.client.AvaritiaClientEventHandler;
 import morph.avaritia.client.gui.GUIExtremeCrafting;
 import morph.avaritia.client.gui.GUINeutronCollector;
 import morph.avaritia.client.gui.GUINeutroniumCompressor;
+import morph.avaritia.client.render.entity.WingLayer;
 import morph.avaritia.client.render.shader.ShaderHelper;
 import morph.avaritia.init.AvaritiaTextures;
 import morph.avaritia.init.ModContent;
 import morph.avaritia.init.ModItems;
 import morph.avaritia.network.NetworkDispatcher;
+import morph.avaritia.util.Lumberjack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ScreenManager;
 import net.minecraft.client.renderer.color.ItemColors;
@@ -19,14 +21,20 @@ import net.minecraft.item.ItemModelsProperties;
 import net.minecraft.item.Items;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLDedicatedServerSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import org.apache.logging.log4j.Level;
+import org.lwjgl.opengl.GL11;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@OnlyIn(Dist.CLIENT)
 public class ProxyClient extends Proxy {
 
     private Set<IModelRegister> modelRegisters = new HashSet<>();
@@ -58,47 +66,8 @@ public class ProxyClient extends Proxy {
         super.onConstructor();
         spriteHelper.addIIconRegister(new AvaritiaTextures());
         MinecraftForge.EVENT_BUS.register(new AvaritiaClientEventHandler());
+        FMLJavaModLoadingContext.get().getModEventBus().register(new AvaritiaClientEventHandler.OtherBus());
 
-
-//        {
-//            ModelResourceLocation pickaxe = new ModelResourceLocation(tools, "infinity_pickaxe=pickaxe");
-//            ModelResourceLocation hammer = new ModelResourceLocation(tools, "infinity_pickaxe=hammer");
-//            ModelLoader.registerItemVariants(ModItems.infinity_pickaxe, pickaxe, hammer);
-//            ModelLoader.setCustomMeshDefinition(ModItems.infinity_pickaxe, stack -> {
-//                if (stack.hasTagCompound()) {
-//                    if (ItemNBTUtils.getBoolean(stack, "hammer")) {
-//                        return hammer;
-//                    }
-//                }
-//                return pickaxe;
-//            });
-//        }
-//
-//        {
-//            ModelResourceLocation shovel = new ModelResourceLocation(tools, "infinity_shovel=shovel");
-//            ModelResourceLocation destroyer = new ModelResourceLocation(tools, "infinity_shovel=destroyer");
-//            ModelLoader.registerItemVariants(ModItems.infinity_shovel, shovel, destroyer);
-//            ModelLoader.setCustomMeshDefinition(ModItems.infinity_shovel, stack -> {
-//                if (stack.hasTagCompound()) {
-//                    if (ItemNBTUtils.getBoolean(stack, "destroyer")) {
-//                        return destroyer;
-//                    }
-//                }
-//                return shovel;
-//            });
-//        }
-//
-//        {
-//            ModelResourceLocation axe = new ModelResourceLocation(tools, "type=infinity_axe");
-//            ModelLoader.registerItemVariants(ModItems.infinity_axe, axe);
-//            ModelLoader.setCustomMeshDefinition(ModItems.infinity_axe, (ItemStack stack) -> axe);
-//        }
-//
-//        {
-//            ModelResourceLocation hoe = new ModelResourceLocation(tools, "type=infinity_hoe");
-//            ModelLoader.registerItemVariants(ModItems.infinity_axe, hoe);
-//            ModelLoader.setCustomMeshDefinition(ModItems.infinity_hoe, (ItemStack stack) -> hoe);
-//        }
 //
 //        {
 //            ModelResourceLocation helmet = new ModelResourceLocation(tools, "armor=helmet");
@@ -124,23 +93,9 @@ public class ProxyClient extends Proxy {
 //            ModelLoader.setCustomMeshDefinition(ModItems.infinity_boots, (ItemStack stack) -> boots);
 //        }
 //
-//        {
-//            ModelResourceLocation sword = new ModelResourceLocation(tools, "type=skull_sword");
-//            ModelLoader.registerItemVariants(ModItems.skull_sword, sword);
-//            ModelLoader.setCustomMeshDefinition(ModItems.skull_sword, (ItemStack stack) -> sword);
-//        }
-//
-//        {
-//            ModelResourceLocation stew = new ModelResourceLocation(resource, "type=ultimate_stew");
-//            ModelLoader.registerItemVariants(ModItems.ultimate_stew, stew);
-//            ModelLoader.setCustomMeshDefinition(ModItems.ultimate_stew, (ItemStack stack) -> stew);
-//        }
-//
-//        {
-//            ModelResourceLocation meatballs = new ModelResourceLocation(resource, "type=cosmic_meatballs");
-//            ModelLoader.registerItemVariants(ModItems.cosmic_meatballs, meatballs);
-//            ModelLoader.setCustomMeshDefinition(ModItems.cosmic_meatballs, (ItemStack stack) -> meatballs);
-//        }
+
+
+
 //
 //        {
 //            ModelResourceLocation empty = new ModelResourceLocation(resource, "matter_cluster=empty");
@@ -154,9 +109,10 @@ public class ProxyClient extends Proxy {
 //            });
 //        }
         NetworkDispatcher.init();
+
     }
 
-    @SuppressWarnings ("unchecked")
+//    @SuppressWarnings ("unchecked")
 //    @Override
 //    public void postInit(FMLPostInitializationEvent event) {
 //        super.postInit(event);
@@ -208,10 +164,13 @@ public class ProxyClient extends Proxy {
 //        for (IModelRegister register : modelRegisters) {
 //            register.registerModels();
 //        }
-//        ShaderHelper.initShaders();
         ResourceLocation tools = new ResourceLocation("avaritia:tools");
         ResourceLocation resource = new ResourceLocation("avaritia:resource");
 
+        // Create player layer
+        Minecraft.getInstance().getEntityRenderDispatcher().playerRenderers.forEach(((s, playerRenderer) ->
+                playerRenderer.addLayer(new WingLayer(playerRenderer))));
+        Minecraft.getInstance().execute(ShaderHelper::initShaders);
     }
 
     public void onServerSetup(FMLDedicatedServerSetupEvent event) {

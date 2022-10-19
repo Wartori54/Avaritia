@@ -10,6 +10,7 @@
 !build.gradle
 !build.properties
 !settings.gradle
+!gradle.properties
 
 # Other Files.
 !LICENSE

@@ -189,22 +189,27 @@ public class AbilityHandler {
     private static void tickBootsAbilities(LivingEntity entity) {
         boolean flying = entity instanceof PlayerEntity && ((PlayerEntity) entity).abilities.flying;
         boolean swimming = entity.isSwimming();
-        if (entity.isOnGround() || flying || swimming) {
-            boolean sneaking = entity.isShiftKeyDown();
+        boolean sneaking = entity.isShiftKeyDown();
 
-            float speed = 0.15f * (flying ? 1.1f : 1.0f)
-                    //* (swimming ? 1.2f : 1.0f)
-                    * (sneaking ? 0.1f : 1.0f);
+        float speed = (entity.isOnGround() ? 0.15f : 0.05f)
+                * (flying ? 1.1f : 1.0f)
+                * (swimming ? 1.2f : 1.0f)
+                * (sneaking ? 0.1f : 1.0f);
 
-            if (entity.zza > 0f) {
-                entity.moveRelative(speed, new Vector3d(0f, 0f, 1f));
-            } else if (entity.zza < 0f) {
-                entity.moveRelative(-speed * 0.3f, new Vector3d(0f, 0f, 1f));
-            }
+        if (entity.zza > 0f) {
+            entity.moveRelative(speed, new Vector3d(0f, 0f, 1f));
+        } else if (entity.zza < 0f) {
+            entity.moveRelative(-speed * 0.3f, new Vector3d(0f, 0f, 1f));
+        }
 
-            if (entity.xxa != 0f) {
-                entity.moveRelative(speed * 0.5f * Math.signum(entity.xxa), new Vector3d(1f, 0f, 0f));
-            }
+        if (entity.xxa != 0f) {
+            entity.moveRelative(speed * 0.5f * Math.signum(entity.xxa), new Vector3d(1f, 0f, 0f));
+        }
+
+        if (entity.isShiftKeyDown()) { // vanilla step up when shifting
+            entity.maxUpStep = 0.5f;
+        } else {
+            entity.maxUpStep = 1.0625F;
         }
     }
     //endregion
@@ -215,7 +220,7 @@ public class AbilityHandler {
         LivingEntity entity = event.getEntityLiving();
         if (entitiesWithBoots.contains(entity.getStringUUID() + "|" + entity.level.isClientSide())) {
             Vector3d motion = entity.getDeltaMovement();
-            entity.setDeltaMovement(motion.add(motion.x, motion.y + 0.4f, motion.z));
+            entity.setDeltaMovement(motion.add(motion.x, motion.y + 0.45f, motion.z));
         }
     }
     //endregion

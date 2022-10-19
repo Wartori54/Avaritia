@@ -46,11 +46,9 @@ public class Proxy {
 
     public void onConstructor() {
         ConfigHandler.init(new StandardConfigFile(Paths.get("./config/avaritia.cfg")));
-//        NetworkRegistry.INSTANCE.registerGuiHandler(Avaritia.instance, new GUIHandler());
         MinecraftForge.EVENT_BUS.register(new AbilityHandler());
         MinecraftForge.EVENT_BUS.register(new AvaritiaEventHandler());
         MinecraftForge.EVENT_BUS.register(new AvaritiaRecipeManager());
-
     }
 
     @SubscribeEvent

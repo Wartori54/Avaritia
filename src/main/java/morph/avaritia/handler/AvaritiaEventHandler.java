@@ -16,6 +16,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.item.ItemEntity;
+import net.minecraft.entity.monster.AbstractSkeletonEntity;
 import net.minecraft.entity.monster.SkeletonEntity;
 import net.minecraft.entity.player.PlayerAbilities;
 import net.minecraft.entity.player.PlayerEntity;
@@ -57,11 +58,7 @@ import java.util.*;
 
 public class AvaritiaEventHandler {
 
-    private static Map<RegistryKey<World>, List<AEOCrawlerTask>> crawlerTasks = new HashMap<>();
-
-    private static Set<ItemStack> capturedDrops = new LinkedHashSet<>();
-    private static boolean doItemCapture = false;
-
+    private static final Map<RegistryKey<World>, List<AEOCrawlerTask>> crawlerTasks = new HashMap<>();
     //These are defaults, loaded from config.
     public static final Set<ResourceLocation> defaultTrashOres = new HashSet<>();
 
@@ -77,37 +74,6 @@ public class AvaritiaEventHandler {
         }
         return true;
     }
-
-    //region EntityItem capture.
-    public static void enableItemCapture() {
-        doItemCapture = true;
-    }
-
-    public static void stopItemCapture() {
-        doItemCapture = false;
-    }
-
-    public static boolean isItemCaptureEnabled() {
-        return doItemCapture;
-    }
-
-    public static Set<ItemStack> getCapturedDrops() {
-        Set<ItemStack> dropsCopy = new LinkedHashSet<>(capturedDrops);
-        capturedDrops.clear();
-        return dropsCopy;
-    }
-
-    @SubscribeEvent
-    public void onEntityJoinWorld(EntityJoinWorldEvent event) {
-//        if (doItemCapture) {
-//            if (event.getEntity() instanceof ItemEntity) {
-//                ItemStack stack = ((ItemEntity) event.getEntity()).getItem();
-//                capturedDrops.add(stack);
-//                event.setCanceled(true);
-//            }
-//        }
-    }
-    //endregion
 
     public static AEOCrawlerTask startCrawlerTask(World world, PlayerEntity player, ItemStack stack, BlockPos coords, int steps, boolean leaves, boolean force, Set<BlockPos> posChecked) {
         AEOCrawlerTask swapper = new AEOCrawlerTask(world, player, stack, coords, steps, leaves, force, posChecked);
@@ -155,7 +121,7 @@ public class AvaritiaEventHandler {
                 }
                 nv.duration = 300;
             } else if (armorType == EquipmentSlotType.CHEST) {
-                player.abilities.flying = true;
+                player.abilities.mayfly = true;
                 List<EffectInstance> effects = Lists.newArrayList(player.getActiveEffects());
                 for (EffectInstance potion : Collections2.filter(effects, potion -> !potion.getEffect().isBeneficial())) {
                     if (ModHelper.isHoldingCleaver(player) && potion.getEffect().equals(Effects.DIG_SLOWDOWN)) {
@@ -200,79 +166,29 @@ public class AvaritiaEventHandler {
         }
     }
 
-//    @SubscribeEvent
-//    public void handleExtraLuck(BlockEvent.BreakEvent event) { // This got replaced by adding fortune enchantment
-//        if (event.getPlayer() == null) {
-//            return;
-//        }
-//        ItemStack mainHand = event.getPlayer().getMainHandItem();
-//
-//        if (!mainHand.isEmpty() && mainHand.getItem() == ModItems.infinity_pickaxe) {
-//            applyLuck(event, 4);
-//        }
-//    }
-
-
-
-//    public static void applyLuck(BlockEvent.BreakEvent event, int multiplier) { // This got replaced by adding fortune enchantment
-//        //Only do stuff on stone.
-//        if (event.getState().getMaterial() == Material.STONE) {
-//            List<ItemStack> adds = new ArrayList<>();
-//            List<ItemStack> removals = new ArrayList<>();
-//            World world = (World) event.getWorld();
-//
-//            for (ItemStack drop : Block.getDrops(event.getState(), (ServerWorld) event.getWorld(), event.getPos(), world.getBlockEntity(event.getPos()))) {
-//                //We are a drop that is not the same as the Blocks ItemBlock and the drop itself is not an ItemBlock, AKA, Redstone, Lapis.
-//                if (drop.getItem() != Item.BY_BLOCK.get(event.getState().getBlock()) && !(drop.getItem() instanceof BlockItem)) {
-//                    //Apply standard Luck modifier
-//                    drop.setCount(Math.min(drop.getCount() * multiplier, drop.getMaxStackSize()));
-//                } else if (ConfigHandler.fracturedOres && drop.getItem() == Item.BY_BLOCK.get(event.getState().getBlock())) {
-//                    //kk, we are an ore block, Lets test for oreDict and add fractured ores.
-//                    ItemFracturedOre fracturedOre = ModItems.fractured_ore;
-//                    int[] iDs = OreDictionary.getOreIDs(drop);
-//                    for (int id : iDs) {
-//                        String oreName = OreDictionary.getOreName(id);
-//                        if (oreName.startsWith("ore")) {
-//                            // add the fractured ores
-//                            adds.add(fracturedOre.getStackForOre(drop, Math.min(drop.getCount() * (multiplier + 1), drop.getMaxStackSize())));
-//                            removals.add(drop);
-//                            break;
-//                        }
-//                    }
-//                }
-//            }
-//
-//            event.getDrops().addAll(adds);
-//            event.getDrops().removeAll(removals);
-//            event.setCanceled(true);
-//        }
-//    }
-
     @OnlyIn(Dist.CLIENT)
     @SubscribeEvent
     public void onTooltip(ItemTooltipEvent event) {
         if (event.getItemStack().getItem() instanceof ItemSwordInfinity) {
             for (int x = 0; x < event.getToolTip().size(); x++) {
-
-                if (event.getToolTip().get(x).getContents().equals("attribute.name.generic.attackDamage")) {
-                    ITextComponent tooltip = new StringTextComponent(" ")
-                            .append(new StringTextComponent(TextUtils.makeFabulous(I18n.get("tip.infinity"))))
-                            .append(new TranslationTextComponent("attribute.name.generic.attackDamage").withStyle(TextFormatting.GRAY));
-                    event.getToolTip().set(x, tooltip);
-                    return;
-                } else {
-                    List<ITextComponent> siblings = event.getToolTip().get(x).getSiblings();
-                    for (int y = 0; y < siblings.size(); y++) {
-                        if (siblings.get(y).getContents().equals("attribute.name.generic.attackDamage")) {
-                            ITextComponent tooltip = new StringTextComponent(" ")
-                                    .append(new StringTextComponent(TextUtils.makeFabulous(I18n.get("tip.infinity"))))
-                                    .append(new TranslationTextComponent("attribute.name.generic.attackDamage").withStyle(TextFormatting.GRAY));
-                            siblings.set(x, tooltip);
-                            return;
+                ITextComponent text = event.getToolTip().get(x);
+                if (text instanceof StringTextComponent && text.getContents().equals(" ")) {
+                    if (text.getSiblings().size() == 1) {
+                        ITextComponent innerText = text.getSiblings().get(0);
+                        if (innerText instanceof TranslationTextComponent) {
+                            TranslationTextComponent attribute_modifier = (TranslationTextComponent) innerText;
+                            if (attribute_modifier.getArgs().length == 2 && attribute_modifier.getKey().equals("attribute.modifier.equals.0")) {
+                                if (attribute_modifier.getArgs()[1] instanceof TranslationTextComponent) {
+                                    TranslationTextComponent attack_damage_text = (TranslationTextComponent) attribute_modifier.getArgs()[1];
+                                    if (attack_damage_text.getKey().equals("attribute.name.generic.attack_damage")) {
+                                        // FINALLY, we're on correct tag
+                                        attribute_modifier.args[0] = TextUtils.makeFabulous(I18n.get("tip.infinity"));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-
             }
         }
     }
@@ -307,7 +223,7 @@ public class AvaritiaEventHandler {
 
     @SubscribeEvent
     public void onLivingDrops(LivingDropsEvent event) {
-        if (event.isRecentlyHit() && event.getEntityLiving() instanceof SkeletonEntity && event.getSource().getDirectEntity() instanceof PlayerEntity) { // TODO: this logic is very BORKED
+        if (event.isRecentlyHit() && event.getEntityLiving() instanceof AbstractSkeletonEntity && event.getSource().getDirectEntity() instanceof PlayerEntity) { // TODO: this logic is very BORKED
             PlayerEntity player = (PlayerEntity) event.getSource().getDirectEntity();
             if (!player.getMainHandItem().isEmpty() && player.getMainHandItem().getItem() == ModItems.skull_sword) {
                 // ok, we need to drop a skull then.
@@ -318,7 +234,7 @@ public class AvaritiaEventHandler {
                     for (ItemEntity drop : event.getDrops()) {
                         ItemStack stack = drop.getItem();
                         if (stack.getItem() instanceof SkullItem) {
-                            if (stack.getCount() == 1) {
+                            if (stack.getCount() > 0) {
                                 skulls++;
                             } else if (stack.getCount() == 0) {
                                 skulls++;
